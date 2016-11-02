@@ -1,0 +1,5 @@
+Version 0.1.0
+=============
+Released: 2016-11-02
+
+Initial implementation providing cryptfs-tpm2 and libcryptfs-tpm2.so.

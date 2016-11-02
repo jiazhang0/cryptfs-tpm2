@@ -1,0 +1,6 @@
+src/cryptfs-tpm2/cryptfs-tpm2
+*.o
+*.so
+*.a
+src/lib/build_info.c
+*.patch

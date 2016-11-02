@@ -1,0 +1,45 @@
+Cryptfs-TPM2
+============
+
+This project provides with an implementation for storing/restoring a
+passphrase with TPM 2.0. The passphrase and its associated primary
+key are automatically created by RNG engine in TPM. In order to avoid
+saving the context file, the created passphrase and primary key are always
+persistent in TPM.
+
+Currently, the resulting binaries consist of cryptfs-tpm2 and
+libcryptfs-tpm2.so.
+
+Build
+-----
+$ make
+
+Note: use "CROSS_COMPILE=" in command line to specify cross compilation.
+
+Installation
+------------
+$ sudo make install
+$ sudo ldconfig
+
+Help
+----
+- For the available options and sub-commands:
+# cryptfs-tpm2 -h
+
+- For a sub-command:
+# cryptfs-tpm2 help <subcmd>
+
+Quick start
+-----------
+- Preparation
+Clear TPM through setting the security jumper on the board.
+Note: always specify -a option if a password for owner hierarchy is set.
+
+- Create the primary key and passphrase
+# cryptfs-tpm2 seal all
+
+- Retrieve the passphrase
+# cryptfs-tpm2 unseal passphrase
+
+Known issues
+------------
