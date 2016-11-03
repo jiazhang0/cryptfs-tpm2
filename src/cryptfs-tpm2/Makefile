@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 BIN_NAME := cryptfs-tpm2
 
 OBJS_$(BIN_NAME) := \
-		    cryptfs_tpm2.o \
+		    main.o \
 		    subcmd_help.o \
 		    subcmd_evict.o \
 		    subcmd_seal.o \
