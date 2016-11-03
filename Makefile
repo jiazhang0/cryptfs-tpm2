@@ -3,7 +3,7 @@ include version.mk
 TOPDIR := $(shell pwd)
 export TOPDIR
 
-SUBDIRS := src
+SUBDIRS := src script
 
 .DEFAULT_GOAL := all
 .PHONE: all clean install tag
