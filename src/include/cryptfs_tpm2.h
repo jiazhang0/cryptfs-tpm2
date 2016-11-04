@@ -65,7 +65,8 @@ extern int
 cryptfs_tpm2_create_primary_key(char *auth_password);
 
 extern int
-cryptfs_tpm2_create_passphrase(char *auth_password);
+cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
+			       char *auth_password);
 
 extern int
 cryptfs_tpm2_unseal_passphrase(void **passphrase, size_t *passphrase_size);

@@ -15,7 +15,8 @@
 #include "internal.h"
 
 static int
-set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, TPM2B_PUBLIC *inPublic)
+set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, size_t passphrase_size,
+	   TPM2B_PUBLIC *inPublic)
 {
 	switch (name_alg) {
 	case TPM_ALG_SHA1:
@@ -37,7 +38,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, TPM2B_PUBLIC *inPublic)
 	inPublic->t.publicArea.objectAttributes.decrypt = 1;
 	inPublic->t.publicArea.objectAttributes.fixedTPM = 1;
 	inPublic->t.publicArea.objectAttributes.fixedParent = 1;
-	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = 1;
+	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !passphrase_size;
 	inPublic->t.publicArea.authPolicy.t.size = 0;
 	inPublic->t.publicArea.type = type;
 
@@ -51,11 +52,18 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, TPM2B_PUBLIC *inPublic)
 		inPublic->t.publicArea.parameters.rsaDetail.exponent = 0;
 		inPublic->t.publicArea.unique.rsa.t.size = 0;
 		break;
-	case TPM_ALG_KEYEDHASH:	/* Always used for sealed data */
-		inPublic->t.publicArea.objectAttributes.sign = 0;
-		inPublic->t.publicArea.objectAttributes.restricted = 0;
-		inPublic->t.publicArea.objectAttributes.decrypt = 0;
-		inPublic->t.publicArea.parameters.keyedHashDetail.scheme.scheme = TPM_ALG_NULL;
+	case TPM_ALG_KEYEDHASH:
+		if (passphrase_size) {
+			/* Always used for sealed data */
+			inPublic->t.publicArea.objectAttributes.sign = 0;
+			inPublic->t.publicArea.objectAttributes.restricted = 0;
+			inPublic->t.publicArea.objectAttributes.decrypt = 0;
+			inPublic->t.publicArea.parameters.keyedHashDetail.scheme.scheme = TPM_ALG_NULL;
+		} else {
+			inPublic->t.publicArea.parameters.keyedHashDetail.scheme.scheme = TPM_ALG_XOR;
+			inPublic->t.publicArea.parameters.keyedHashDetail.scheme.details.exclusiveOr.hashAlg = TPM_ALG_SHA256;
+			inPublic->t.publicArea.parameters.keyedHashDetail.scheme.details.exclusiveOr.kdf = TPM_ALG_KDF1_SP800_108;
+		}
 		inPublic->t.publicArea.unique.keyedHash.t.size = 0;
 		break;
 	case TPM_ALG_ECC:
@@ -88,7 +96,7 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 	TPM2B_PUBLIC in_public;
 	UINT32 rc;
 
-	if (set_public(TPM_ALG_RSA, TPM_ALG_SHA256, &in_public))
+	if (set_public(TPM_ALG_RSA, TPM_ALG_SHA256, 0, &in_public))
 		return -1;
 
 	TPM2B_SENSITIVE_CREATE in_sensitive;
@@ -139,22 +147,31 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 }
 
 int
-cryptfs_tpm2_create_passphrase(char *auth_password)
+cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
+			       char *auth_password)
 {
 	TPM2B_PUBLIC in_public;
 	UINT32 rc;
 
-	if (set_public(TPM_ALG_KEYEDHASH, TPM_ALG_SHA256, &in_public))
+	passphrase_size = (passphrase && passphrase_size) ? passphrase_size : 0;
+
+	if (set_public(TPM_ALG_KEYEDHASH, TPM_ALG_SHA256, passphrase_size,
+		       &in_public))
 		return -1;
 
 	TPM2B_SENSITIVE_CREATE in_sensitive;
 	in_sensitive.t.sensitive.userAuth.t.size = strlen(CRYPTFS_TPM2_PASSPHRASE_SECRET);
-	memcpy((char *)in_sensitive.t.sensitive.userAuth.t.buffer,
+	memcpy(in_sensitive.t.sensitive.userAuth.t.buffer,
 	       CRYPTFS_TPM2_PASSPHRASE_SECRET,
 	       in_sensitive.t.sensitive.userAuth.t.size);
 
 	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.b.size + 2;
-	in_sensitive.t.sensitive.data.t.size = 0;
+	if (passphrase_size) {
+		in_sensitive.t.sensitive.data.t.size = passphrase_size;
+		memcpy(in_sensitive.t.sensitive.data.t.buffer, passphrase,
+		       passphrase_size);
+	} else
+		in_sensitive.t.sensitive.data.t.size = 0;
 
 	TPML_PCR_SELECTION creation_pcr;
 	creation_pcr.count = 0;

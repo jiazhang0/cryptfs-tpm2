@@ -37,6 +37,9 @@ Note: always specify -a option if a password for owner hierarchy is set.
 
 - Create the primary key and passphrase
 # cryptfs-tpm2 seal all
+or
+# cryptfs-tpm2 seal all -p <passphrase>
+to type the passphrase explicitly.
 
 - Retrieve the passphrase
 # cryptfs-tpm2 unseal passphrase

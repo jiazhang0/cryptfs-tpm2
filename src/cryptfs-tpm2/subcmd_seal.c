@@ -15,6 +15,7 @@
 static char *opt_auth_password;
 static bool opt_setup_key;
 static bool opt_setup_passphrase;
+static char *opt_passphrase;
 
 static void
 show_usage(char *prog)
@@ -28,6 +29,7 @@ show_usage(char *prog)
 	info_cont("\nargs:\n");
 	info_cont("  --auth, -a: (optional) Set the authorization value for "
 		  "owner hierarchy.\n");
+	info_cont("  --passphrase, -p: (optional) Set the passphrase value.\n");
 }
 
 static int
@@ -43,6 +45,9 @@ parse_arg(int opt, char *optarg)
 		}
 		opt_auth_password = optarg;
                 break;
+	case 'p':
+		opt_passphrase = optarg;
+		break;
 	case 1:
 		if (!strcasecmp(optarg, "key"))
 			opt_setup_key = 1;
@@ -60,6 +65,12 @@ parse_arg(int opt, char *optarg)
 		return -1;
 	}
 
+	if (opt_passphrase && !opt_setup_passphrase) {
+		warn("-p option is ignored if the object to be sealed is not "
+		     "passphrase\n");
+		opt_passphrase = NULL;
+	}
+
 	return 0;
 }
 
@@ -75,7 +86,9 @@ run_seal(char *prog)
 	}
 
 	if (opt_setup_passphrase) {
-		rc = cryptfs_tpm2_create_passphrase(opt_auth_password);
+		size_t size = opt_passphrase ? strlen(opt_passphrase) : 0;
+		rc = cryptfs_tpm2_create_passphrase(opt_passphrase, size,
+						    opt_auth_password);
 		if (rc)
 			return rc;
 	}
@@ -85,12 +98,13 @@ run_seal(char *prog)
 
 static struct option long_opts[] = {
 	{ "auth", required_argument, NULL, 'a' },
+	{ "passphrase", required_argument, NULL, 'p' },
 	{ 0 },	/* NULL terminated */
 };
 
 subcommand_t subcommand_seal = {
 	.name = "seal",
-	.optstring = "-a:",
+	.optstring = "-a:p:",
 	.long_opts = long_opts,
 	.parse_arg = parse_arg,
 	.show_usage = show_usage,
