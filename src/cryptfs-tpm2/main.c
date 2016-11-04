@@ -19,7 +19,7 @@ show_banner(void)
 {
 	info_cont("\nCryptfs-TPM 2.0 tool\n");
 	info_cont("(C)Copyright 2016, Wind River Systems, Inc.\n");
-	info_cont("Version: %s+git%s\n", VERSION, cryptfs_tpm2_git_commit);
+	info_cont("Version: %s+git-%s\n", VERSION, cryptfs_tpm2_git_commit);
 	info_cont("Build Machine: %s\n", cryptfs_tpm2_build_machine);
 	info_cont("Build Time: " __DATE__ " " __TIME__ "\n\n");
 }
