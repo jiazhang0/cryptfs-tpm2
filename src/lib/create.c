@@ -15,8 +15,8 @@
 #include "internal.h"
 
 static int
-set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, size_t passphrase_size,
-	   TPM2B_PUBLIC *inPublic)
+set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
+	   size_t sensitive_size, TPM2B_PUBLIC *inPublic)
 {
 	switch (name_alg) {
 	case TPM_ALG_SHA1:
@@ -38,7 +38,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, size_t passphrase_size,
 	inPublic->t.publicArea.objectAttributes.decrypt = 1;
 	inPublic->t.publicArea.objectAttributes.fixedTPM = 1;
 	inPublic->t.publicArea.objectAttributes.fixedParent = 1;
-	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !passphrase_size;
+	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !sensitive_size;
 	inPublic->t.publicArea.authPolicy.t.size = 0;
 	inPublic->t.publicArea.type = type;
 
@@ -53,7 +53,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, size_t passphrase_size,
 		inPublic->t.publicArea.unique.rsa.t.size = 0;
 		break;
 	case TPM_ALG_KEYEDHASH:
-		if (passphrase_size) {
+		if (!set_key) {
 			/* Always used for sealed data */
 			inPublic->t.publicArea.objectAttributes.sign = 0;
 			inPublic->t.publicArea.objectAttributes.restricted = 0;
@@ -96,7 +96,7 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 	TPM2B_PUBLIC in_public;
 	UINT32 rc;
 
-	if (set_public(TPM_ALG_RSA, TPM_ALG_SHA256, 0, &in_public))
+	if (set_public(TPM_ALG_RSA, TPM_ALG_SHA256, 1, 0, &in_public))
 		return -1;
 
 	TPM2B_SENSITIVE_CREATE in_sensitive;
@@ -155,7 +155,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 
 	passphrase_size = (passphrase && passphrase_size) ? passphrase_size : 0;
 
-	if (set_public(TPM_ALG_KEYEDHASH, TPM_ALG_SHA256, passphrase_size,
+	if (set_public(TPM_ALG_KEYEDHASH, TPM_ALG_SHA256, 0, passphrase_size,
 		       &in_public))
 		return -1;
 
