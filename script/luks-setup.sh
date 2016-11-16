@@ -182,6 +182,9 @@ Options:
 
     By default, TPM is probed automatically.
 
+ -e|--evict-all
+    (Optional) Always evict the primary key and passphrase.
+
  -V|--verbose
     (Optional) Show the verbose output.
 
@@ -198,6 +201,7 @@ PROG_NAME=`basename $0`
 OPT_FORCE_CREATION=0
 OPT_UNMAP_LUKS=0
 OPT_NO_TPM=0
+OPT_EVICT_ALL=0
 OPT_VERBOSE=0
 
 while [ $# -gt 0 ]; do
@@ -217,6 +221,9 @@ while [ $# -gt 0 ]; do
 	    ;;
 	-t|--no-tpm)
 	    OPT_NO_TPM=1
+	    ;;
+	-e|--evict-all)
+	    OPT_EVICT_ALL=1
 	    ;;
 	-V|--verbose)
 	    OPT_VERBOSE=1
@@ -277,11 +284,13 @@ trap "trap_handler $?" SIGINT EXIT
 if [ $OPT_NO_TPM -eq 0 ]; then
     detect_tpm
     if [ $? -eq 0 ]; then
-        cryptfs-tpm2 -q evict all
+        if [ $OPT_EVICT_ALL -eq 1 ]; then
+            cryptfs-tpm2 -q evict all
 
-        ! cryptfs-tpm2 -q seal all &&
-            print_error "Unable to create the primary key and passphrase" &&
-            exit 1
+            ! cryptfs-tpm2 -q seal all &&
+                print_error "Unable to create the primary key and passphrase" &&
+                exit 1
+        fi
 
         TPM_ABSENT=0
     fi
