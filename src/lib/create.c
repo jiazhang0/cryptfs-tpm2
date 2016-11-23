@@ -120,7 +120,7 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 	TPM_HANDLE obj_handle;
 
 	struct session_complex s;
-	session_init(&s, auth_password);
+	password_session_create(&s, auth_password);
 
 	rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context, TPM_RH_OWNER,
 				    &s.sessionsData, &in_sensitive, &in_public,
@@ -184,7 +184,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE)-2, } };
 
 	struct session_complex s;
-	session_init(&s, CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
+	password_session_create(&s, CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
 
 	rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context, CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
 			     &s.sessionsData, &in_sensitive, &in_public,

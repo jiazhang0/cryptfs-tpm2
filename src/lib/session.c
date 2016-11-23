@@ -31,7 +31,7 @@ set_password_auth(TPMS_AUTH_COMMAND *sessionData, char *auth_password)
 }
 
 void
-session_init(struct session_complex *s, char *auth_password)
+password_session_create(struct session_complex *s, char *auth_password)
 {
 	set_password_auth(&s->sessionData, auth_password);
 	s->sessionDataArray[0] = &s->sessionData;

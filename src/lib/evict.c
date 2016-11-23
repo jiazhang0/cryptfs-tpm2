@@ -21,7 +21,7 @@ cryptfs_tpm2_evictcontrol(TPMI_DH_OBJECT obj_handle, TPMI_DH_PERSISTENT persist_
 	struct session_complex s;
 	UINT32 rc;
 
-	session_init(&s, auth_password);
+	password_session_create(&s, auth_password);
 
 	rc = Tss2_Sys_EvictControl(cryptfs_tpm2_sys_context, TPM_RH_OWNER,
 				   obj_handle, &s.sessionsData, persist_handle,

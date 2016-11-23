@@ -43,6 +43,6 @@ struct session_complex {
 extern TSS2_SYS_CONTEXT *cryptfs_tpm2_sys_context;
 
 void
-session_init(struct session_complex *s, char *auth_password);
+password_session_create(struct session_complex *s, char *auth_password);
 
 #endif	/* __INTERNAL_H__ */

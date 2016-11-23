@@ -20,7 +20,7 @@ cryptfs_tpm2_unseal_passphrase(void **passphrase, size_t *passphrase_size)
 	UINT32 rc;
 
 	struct session_complex s;
-	session_init(&s, CRYPTFS_TPM2_PASSPHRASE_SECRET);
+	password_session_create(&s, CRYPTFS_TPM2_PASSPHRASE_SECRET);
 
 	TPM2B_SENSITIVE_DATA out_data = {{sizeof(TPM2B_SENSITIVE_DATA)-2, }};
 
