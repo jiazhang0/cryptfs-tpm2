@@ -28,7 +28,7 @@
 #define CRYPTFS_TPM2_PASSPHRASE_SECRET		"h31i05"
 
 /* The PCR index used to seal/unseal the passphrase */
-#define CRYPTFS_TPM2_PCR_INDEX			9
+#define CRYPTFS_TPM2_PCR_INDEX			7
 
 struct session_complex {
 	TPMI_SH_AUTH_SESSION session_handle;
