@@ -16,6 +16,7 @@ static char *opt_auth_password;
 static bool opt_setup_key;
 static bool opt_setup_passphrase;
 static char *opt_passphrase;
+static int opt_pcr_bound;
 
 static void
 show_usage(char *prog)
@@ -27,6 +28,8 @@ show_usage(char *prog)
 		  "    key: Primary key used to seal the passphrase\n"
 		  "    all: All above\n");
 	info_cont("\nargs:\n");
+	info_cont("  --pcr-bound, -P: (optional) Use PCR to bind the "
+		  "created primary key and passphrase.\n");
 	info_cont("  --auth, -a: (optional) Set the authorization value for "
 		  "owner hierarchy.\n");
 	info_cont("  --passphrase, -p: (optional) Set the passphrase value.\n");
@@ -47,6 +50,9 @@ parse_arg(int opt, char *optarg)
                 break;
 	case 'p':
 		opt_passphrase = optarg;
+		break;
+	case 'P':
+		opt_pcr_bound = 1;
 		break;
 	case 1:
 		if (!strcasecmp(optarg, "key"))
@@ -80,7 +86,8 @@ run_seal(char *prog)
 	int rc = 0;
 
 	if (opt_setup_key) {
-		rc = cryptfs_tpm2_create_primary_key(opt_auth_password);
+		rc = cryptfs_tpm2_create_primary_key(opt_pcr_bound,
+						     opt_auth_password);
 		if (rc)
 			return rc;
 	}
@@ -88,6 +95,7 @@ run_seal(char *prog)
 	if (opt_setup_passphrase) {
 		size_t size = opt_passphrase ? strlen(opt_passphrase) : 0;
 		rc = cryptfs_tpm2_create_passphrase(opt_passphrase, size,
+						    opt_pcr_bound,
 						    opt_auth_password);
 		if (rc)
 			return rc;
@@ -99,12 +107,13 @@ run_seal(char *prog)
 static struct option long_opts[] = {
 	{ "auth", required_argument, NULL, 'a' },
 	{ "passphrase", required_argument, NULL, 'p' },
+	{ "pcr-bound", no_argument, NULL, 'P' },
 	{ 0 },	/* NULL terminated */
 };
 
 subcommand_t subcommand_seal = {
 	.name = "seal",
-	.optstring = "-a:p:",
+	.optstring = "-a:p:P",
 	.long_opts = long_opts,
 	.parse_arg = parse_arg,
 	.show_usage = show_usage,

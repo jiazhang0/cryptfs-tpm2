@@ -109,10 +109,11 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 }
 
 int
-cryptfs_tpm2_create_primary_key(char *auth_password)
+cryptfs_tpm2_create_primary_key(int pcr_bound, char *auth_password)
 {
 	TPMI_ALG_HASH policy_digest_alg = TPM_ALG_SHA1;
 	TPMI_ALG_HASH name_alg = TPM_ALG_SHA1;
+	TPMI_ALG_HASH pcr_bank_alg = TPM_ALG_SHA1;
 	UINT32 rc;
 
 	TPM2B_SENSITIVE_CREATE in_sensitive;
@@ -125,14 +126,17 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 	in_sensitive.t.sensitive.data.t.size = 0;
 
 	TPML_PCR_SELECTION pcrs_in;
-	pcrs_in.count = 1;
-	pcrs_in.pcrSelections->hash = TPM_ALG_SHA1;
-	pcrs_in.pcrSelections->sizeofSelect = 3;
-	pcrs_in.pcrSelections->pcrSelect[0] = 0;
-	pcrs_in.pcrSelections->pcrSelect[1] = 0;
-	pcrs_in.pcrSelections->pcrSelect[2] = 0;
-	pcrs_in.pcrSelections->pcrSelect[CRYPTFS_TPM2_PCR_INDEX / 8] |=
-		(1 << (CRYPTFS_TPM2_PCR_INDEX % 8));
+	if (pcr_bound) {
+		pcrs_in.count = 1;
+		pcrs_in.pcrSelections->hash = pcr_bank_alg;
+		pcrs_in.pcrSelections->sizeofSelect = 3;
+		pcrs_in.pcrSelections->pcrSelect[0] = 0;
+		pcrs_in.pcrSelections->pcrSelect[1] = 0;
+		pcrs_in.pcrSelections->pcrSelect[2] = 0;
+		pcrs_in.pcrSelections->pcrSelect[CRYPTFS_TPM2_PCR_INDEX / 8] |=
+			(1 << (CRYPTFS_TPM2_PCR_INDEX % 8));
+	} else
+		pcrs_in.count = 0;
 
 	TPML_PCR_SELECTION pcrs;
 	UINT32 pcr_update_counter;
@@ -214,7 +218,7 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 
 int
 cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
-			       char *auth_password)
+			       int pcr_bound, char *auth_password)
 {
 	TPM2B_PUBLIC in_public;
 	UINT32 rc;
@@ -240,7 +244,18 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 		in_sensitive.t.sensitive.data.t.size = 0;
 
 	TPML_PCR_SELECTION creation_pcr;
-	creation_pcr.count = 0;
+
+	if (pcr_bound) {
+		creation_pcr.count = 1;
+		creation_pcr.pcrSelections->hash = TPM_ALG_SHA256;
+		creation_pcr.pcrSelections->sizeofSelect = 3;
+		creation_pcr.pcrSelections->pcrSelect[0] = 0;
+		creation_pcr.pcrSelections->pcrSelect[1] = 0;
+		creation_pcr.pcrSelections->pcrSelect[2] = 0;
+		creation_pcr.pcrSelections->pcrSelect[(CRYPTFS_TPM2_PCR_INDEX)/8] |=
+			1 << ((CRYPTFS_TPM2_PCR_INDEX) % 8);
+	} else
+		creation_pcr.count = 0;
 
 	TPM2B_DATA outside_info = { { 0, } };
 	TPM2B_CREATION_DATA creation_data = { { 0, } };
