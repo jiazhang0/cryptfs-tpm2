@@ -16,7 +16,8 @@
 
 static int
 set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
-	   size_t sensitive_size, TPM2B_PUBLIC *inPublic)
+	   size_t sensitive_size, TPM2B_PUBLIC *inPublic,
+	   TPM2B_DIGEST *policy_digest)
 {
 	switch (name_alg) {
 	case TPM_ALG_SHA1:
@@ -32,6 +33,18 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 		return -1;
 	}
 
+	if (policy_digest) {
+		UINT16 name_alg_size;
+
+		util_digest_size(name_alg, &name_alg_size);
+		if (policy_digest->b.size < name_alg_size) {
+			err("The size of policy digest (%d-byte) should be "
+			    "equal or bigger then nameAlg (%d-byte)\n",
+			    policy_digest->b.size, name_alg_size);
+			return -1;
+		}
+	}
+
 	*(UINT32 *)&(inPublic->t.publicArea.objectAttributes) = 0;
 	inPublic->t.publicArea.objectAttributes.restricted = 1;
 	inPublic->t.publicArea.objectAttributes.userWithAuth = 1;
@@ -39,8 +52,13 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	inPublic->t.publicArea.objectAttributes.fixedTPM = 1;
 	inPublic->t.publicArea.objectAttributes.fixedParent = 1;
 	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !sensitive_size;
-	inPublic->t.publicArea.authPolicy.t.size = 0;
 	inPublic->t.publicArea.type = type;
+
+	if (policy_digest) {
+		memcpy(&inPublic->t.publicArea.authPolicy.b,
+		       policy_digest, sizeof(*policy_digest));
+	} else
+		inPublic->t.publicArea.authPolicy.t.size = 0;
 
 	switch (type) {
 	case TPM_ALG_RSA:
@@ -93,11 +111,9 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 int
 cryptfs_tpm2_create_primary_key(char *auth_password)
 {
-	TPM2B_PUBLIC in_public;
+	TPMI_ALG_HASH policy_digest_alg = TPM_ALG_SHA1;
+	TPMI_ALG_HASH name_alg = TPM_ALG_SHA1;
 	UINT32 rc;
-
-	if (set_public(TPM_ALG_RSA, TPM_ALG_SHA256, 1, 0, &in_public))
-		return -1;
 
 	TPM2B_SENSITIVE_CREATE in_sensitive;
 	in_sensitive.t.sensitive.userAuth.t.size = strlen(CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
@@ -108,8 +124,61 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.b.size + 2;
 	in_sensitive.t.sensitive.data.t.size = 0;
 
-	TPML_PCR_SELECTION creation_pcr;
-	creation_pcr.count = 0;
+	TPML_PCR_SELECTION pcrs_in;
+	pcrs_in.count = 1;
+	pcrs_in.pcrSelections->hash = TPM_ALG_SHA1;
+	pcrs_in.pcrSelections->sizeofSelect = 3;
+	pcrs_in.pcrSelections->pcrSelect[0] = 0;
+	pcrs_in.pcrSelections->pcrSelect[1] = 0;
+	pcrs_in.pcrSelections->pcrSelect[2] = 0;
+	pcrs_in.pcrSelections->pcrSelect[CRYPTFS_TPM2_PCR_INDEX / 8] |=
+		(1 << (CRYPTFS_TPM2_PCR_INDEX % 8));
+
+	TPML_PCR_SELECTION pcrs;
+	UINT32 pcr_update_counter;
+	TPML_DIGEST pcr_digest;
+
+	rc = Tss2_Sys_PCR_Read(cryptfs_tpm2_sys_context, NULL, &pcrs_in,
+			       &pcr_update_counter, &pcrs, &pcr_digest,
+			       NULL);
+	if (rc != TPM_RC_SUCCESS) {
+                err("Unable to read the PCR (%#x)\n", rc);
+                return -1;
+        }
+
+	dbg("Dump PCR %d content: ", CRYPTFS_TPM2_PCR_INDEX);
+	for (int i = 0; i < pcr_digest.digests->t.size; ++i)
+		dbg_cont("%#02x ", pcr_digest.digests->t.buffer[i]);
+	dbg_cont("\n");
+
+        struct session_complex s;
+        if (policy_session_create(&s, TPM_SE_TRIAL, policy_digest_alg))
+                return -1;
+
+        rc = Tss2_Sys_PolicyPCR(cryptfs_tpm2_sys_context, s.session_handle,
+                                NULL, pcr_digest.digests, &pcrs, NULL);
+	if (rc != TPM_RC_SUCCESS) {
+		policy_session_destroy(&s);
+                err("Unable to set the policy for PCR (%#x)\n", rc);
+                return -1;
+        }
+
+	TPM2B_DIGEST policy_digest;
+	rc = Tss2_Sys_PolicyGetDigest(cryptfs_tpm2_sys_context,
+				      s.session_handle, NULL,
+				      &policy_digest, NULL);
+	policy_session_destroy(&s);
+	if (rc != TPM_RC_SUCCESS) {
+		err("Unable to get the policy digest (%#x)\n", rc);
+		return -1;
+	}
+
+	password_session_create(&s, auth_password);
+
+	TPM2B_PUBLIC in_public;
+	if (set_public(TPM_ALG_RSA, name_alg, 1, 0, &in_public,
+		       &policy_digest))
+		return -1;
 
 	TPM2B_DATA outside_info = { { 0, } };
 	TPM2B_NAME out_name = { { sizeof(TPM2B_NAME)-2, } };
@@ -119,12 +188,9 @@ cryptfs_tpm2_create_primary_key(char *auth_password)
 	TPMT_TK_CREATION creation_ticket = { 0, };
 	TPM_HANDLE obj_handle;
 
-	struct session_complex s;
-	password_session_create(&s, auth_password);
-
 	rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context, TPM_RH_OWNER,
 				    &s.sessionsData, &in_sensitive, &in_public,
-				    &outside_info, &creation_pcr, &obj_handle,
+				    &outside_info, &pcrs, &obj_handle,
 				    &out_public, &creation_data, &creation_hash,
 				    &creation_ticket, &out_name,
 				    &s.sessionsDataOut);
@@ -156,7 +222,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	passphrase_size = (passphrase && passphrase_size) ? passphrase_size : 0;
 
 	if (set_public(TPM_ALG_KEYEDHASH, TPM_ALG_SHA256, 0, passphrase_size,
-		       &in_public))
+		       &in_public, NULL))
 		return -1;
 
 	TPM2B_SENSITIVE_CREATE in_sensitive;

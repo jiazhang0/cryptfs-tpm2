@@ -31,6 +31,8 @@
 #define CRYPTFS_TPM2_PCR_INDEX			9
 
 struct session_complex {
+	TPMI_SH_AUTH_SESSION session_handle;
+
 	TPMS_AUTH_COMMAND sessionData;
 	TPMS_AUTH_COMMAND *sessionDataArray[1];
 	TSS2_SYS_CMD_AUTHS sessionsData;
@@ -42,7 +44,17 @@ struct session_complex {
 
 extern TSS2_SYS_CONTEXT *cryptfs_tpm2_sys_context;
 
+int
+util_digest_size(TPMI_ALG_HASH hash_alg, UINT16 *alg_size);
+
 void
 password_session_create(struct session_complex *s, char *auth_password);
+
+int
+policy_session_create(struct session_complex *s, TPM_SE type,
+                      TPMI_ALG_HASH hash_alg);
+
+void
+policy_session_destroy(struct session_complex *s);
 
 #endif	/* __INTERNAL_H__ */
