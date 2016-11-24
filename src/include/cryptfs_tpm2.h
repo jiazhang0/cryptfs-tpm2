@@ -62,11 +62,13 @@ extern int
 cryptefs_tpm2_get_random(void *random, UINT16 req_size);
 
 extern int
-cryptfs_tpm2_create_primary_key(int pcr_bound, char *auth_password);
+cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
+				char *auth_password);
 
 extern int
 cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
-			       int pcr_bound, char *auth_password);
+                               TPMI_ALG_HASH pcr_bank_alg,
+			       char *auth_password);
 
 extern int
 cryptfs_tpm2_unseal_passphrase(void **passphrase, size_t *passphrase_size);

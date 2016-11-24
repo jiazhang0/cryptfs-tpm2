@@ -75,7 +75,7 @@ policy_session_create(struct session_complex *s, TPM_SE type,
                 return -1;
         }
 
-	dbg("The %spolicy session handle %#x created\n",
+	dbg("The %spolicy session handle %#8.8x created\n",
 	    type == TPM_SE_TRIAL ? "trial " : "",
 	    s->session_handle);
 
@@ -88,7 +88,7 @@ policy_session_destroy(struct session_complex *s)
 	UINT32 rc = Tss2_Sys_FlushContext(cryptfs_tpm2_sys_context,
 					  s->session_handle);
 	if (rc == TPM_RC_SUCCESS)
-		dbg("The policy session %#x destroyed\n", s->session_handle);
+		dbg("The policy session %#8.8x destroyed\n", s->session_handle);
 	else
 		err("Unable to destroy the policy session handle "
 		    "(%#x)\n", rc);

@@ -33,7 +33,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 		return -1;
 	}
 
-	if (policy_digest) {
+	if (policy_digest && policy_digest->b.size) {
 		UINT16 name_alg_size;
 
 		util_digest_size(name_alg, &name_alg_size);
@@ -54,10 +54,9 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !sensitive_size;
 	inPublic->t.publicArea.type = type;
 
-	if (policy_digest) {
-		memcpy(&inPublic->t.publicArea.authPolicy.b,
-		       policy_digest, sizeof(*policy_digest));
-	} else
+	if (policy_digest && policy_digest->b.size)
+		inPublic->t.publicArea.authPolicy = *policy_digest;
+	else
 		inPublic->t.publicArea.authPolicy.t.size = 0;
 
 	switch (type) {
@@ -108,96 +107,130 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	return 0;
 }
 
-int
-cryptfs_tpm2_create_primary_key(int pcr_bound, char *auth_password)
+static int
+set_pcr_policy(TPML_PCR_SELECTION *pcrs, TPMI_ALG_HASH policy_digest_alg,
+	       TPM2B_DIGEST *policy_digest)
 {
-	TPMI_ALG_HASH policy_digest_alg = TPM_ALG_SHA1;
-	TPMI_ALG_HASH name_alg = TPM_ALG_SHA1;
-	TPMI_ALG_HASH pcr_bank_alg = TPM_ALG_SHA1;
-	UINT32 rc;
+	/* Calculate the total number of requested PCRs */
+	unsigned int nr_pcr = 0;
+	for (UINT32 c = 0; c < pcrs->count; ++c) {
+		TPMS_PCR_SELECTION *pcr_sel = pcrs->pcrSelections + c;
 
-	TPM2B_SENSITIVE_CREATE in_sensitive;
-	in_sensitive.t.sensitive.userAuth.t.size = strlen(CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
-	memcpy((char *)in_sensitive.t.sensitive.userAuth.t.buffer,
-	       CRYPTFS_TPM2_PRIMARY_KEY_SECRET,
-	       in_sensitive.t.sensitive.userAuth.t.size);
+		for (UINT8 s = 0; s < pcr_sel->sizeofSelect; ++s) {
+			BYTE *sel = pcr_sel->pcrSelect + s;
 
-	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.b.size + 2;
-	in_sensitive.t.sensitive.data.t.size = 0;
+			for (unsigned int i = 0; i < sizeof(BYTE) * 8; ++i) {
+				if (*sel & (1 << i))
+					++nr_pcr;
+			}
+		}
+	}
 
-	TPML_PCR_SELECTION pcrs_in;
-	if (pcr_bound) {
-		pcrs_in.count = 1;
-		pcrs_in.pcrSelections->hash = pcr_bank_alg;
-		pcrs_in.pcrSelections->sizeofSelect = 3;
-		pcrs_in.pcrSelections->pcrSelect[0] = 0;
-		pcrs_in.pcrSelections->pcrSelect[1] = 0;
-		pcrs_in.pcrSelections->pcrSelect[2] = 0;
-		pcrs_in.pcrSelections->pcrSelect[CRYPTFS_TPM2_PCR_INDEX / 8] |=
-			(1 << (CRYPTFS_TPM2_PCR_INDEX % 8));
-	} else
-		pcrs_in.count = 0;
+	if (!nr_pcr) {
+		info("No PCR policy applied");
+		return 0;
+	}
 
-	TPML_PCR_SELECTION pcrs;
+	TPML_DIGEST pcr_digests;
 	UINT32 pcr_update_counter;
-	TPML_DIGEST pcr_digest;
+	TPML_PCR_SELECTION pcrs_out;
 
-	rc = Tss2_Sys_PCR_Read(cryptfs_tpm2_sys_context, NULL, &pcrs_in,
-			       &pcr_update_counter, &pcrs, &pcr_digest,
-			       NULL);
+	UINT32 rc = Tss2_Sys_PCR_Read(cryptfs_tpm2_sys_context, NULL, pcrs,
+				      &pcr_update_counter, &pcrs_out,
+				      &pcr_digests, NULL);
 	if (rc != TPM_RC_SUCCESS) {
-                err("Unable to read the PCR (%#x)\n", rc);
-                return -1;
-        }
+		err("Unable to read the PCRs (%#x)\n", rc);
+		return -1;
+	}
 
-	dbg("Dump PCR %d content: ", CRYPTFS_TPM2_PCR_INDEX);
-	for (int i = 0; i < pcr_digest.digests->t.size; ++i)
-		dbg_cont("%#02x ", pcr_digest.digests->t.buffer[i]);
-	dbg_cont("\n");
+	struct session_complex s;
+	if (policy_session_create(&s, TPM_SE_TRIAL, policy_digest_alg))
+		return -1;
 
-        struct session_complex s;
-        if (policy_session_create(&s, TPM_SE_TRIAL, policy_digest_alg))
-                return -1;
-
-        rc = Tss2_Sys_PolicyPCR(cryptfs_tpm2_sys_context, s.session_handle,
-                                NULL, pcr_digest.digests, &pcrs, NULL);
+	rc = Tss2_Sys_PolicyPCR(cryptfs_tpm2_sys_context, s.session_handle,
+                                NULL, pcr_digests.digests, &pcrs_out, NULL);
 	if (rc != TPM_RC_SUCCESS) {
 		policy_session_destroy(&s);
-                err("Unable to set the policy for PCR (%#x)\n", rc);
-                return -1;
-        }
+		err("Unable to set the policy for PCRs (%#x)\n", rc);
+		return -1;
+	}
 
-	TPM2B_DIGEST policy_digest;
 	rc = Tss2_Sys_PolicyGetDigest(cryptfs_tpm2_sys_context,
 				      s.session_handle, NULL,
-				      &policy_digest, NULL);
+				      policy_digest, NULL);
 	policy_session_destroy(&s);
 	if (rc != TPM_RC_SUCCESS) {
 		err("Unable to get the policy digest (%#x)\n", rc);
 		return -1;
 	}
 
-	password_session_create(&s, auth_password);
+	return 0;
+}
+
+int
+cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
+				char *auth_password)
+{
+	TPML_PCR_SELECTION creation_pcrs;
+	TPM2B_DIGEST policy_digest;
+	TPMI_ALG_HASH name_alg;
+	if (pcr_bank_alg != TPM_ALG_NULL) {
+		unsigned int pcr_index = CRYPTFS_TPM2_PCR_INDEX;
+
+		creation_pcrs.count = 1;
+		creation_pcrs.pcrSelections->hash = pcr_bank_alg;
+		creation_pcrs.pcrSelections->sizeofSelect = 3;
+		creation_pcrs.pcrSelections->pcrSelect[0] = 0;
+		creation_pcrs.pcrSelections->pcrSelect[1] = 0;
+		creation_pcrs.pcrSelections->pcrSelect[2] = 0;
+		creation_pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
+			(1 << (pcr_index % 8));
+
+		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
+		if (set_pcr_policy(&creation_pcrs, policy_digest_alg,
+				   &policy_digest))
+			return -1;
+
+		name_alg = pcr_bank_alg;
+	} else {
+		creation_pcrs.count = 0;
+		policy_digest.b.size = 0;
+		name_alg = TPM_ALG_SHA1;
+	}
 
 	TPM2B_PUBLIC in_public;
 	if (set_public(TPM_ALG_RSA, name_alg, 1, 0, &in_public,
 		       &policy_digest))
 		return -1;
 
+	TPM2B_SENSITIVE_CREATE in_sensitive;
+	in_sensitive.t.sensitive.userAuth.t.size =
+		strlen(CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
+	memcpy((char *)in_sensitive.t.sensitive.userAuth.t.buffer,
+	       CRYPTFS_TPM2_PRIMARY_KEY_SECRET,
+	       in_sensitive.t.sensitive.userAuth.t.size);
+	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.b.size + 2;
+	in_sensitive.t.sensitive.data.t.size = 0;
+
+	struct session_complex s;
+	password_session_create(&s, auth_password);
+
 	TPM2B_DATA outside_info = { { 0, } };
-	TPM2B_NAME out_name = { { sizeof(TPM2B_NAME)-2, } };
+	TPM2B_NAME out_name = { { sizeof(TPM2B_NAME) - 2, } };
 	TPM2B_PUBLIC out_public = { { 0, } };
 	TPM2B_CREATION_DATA creation_data = { { 0, } };
-	TPM2B_DIGEST creation_hash = { { sizeof(TPM2B_DIGEST)-2, } };
+	TPM2B_DIGEST creation_hash = { { sizeof(TPM2B_DIGEST) - 2, } };
 	TPMT_TK_CREATION creation_ticket = { 0, };
 	TPM_HANDLE obj_handle;
 
-	rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context, TPM_RH_OWNER,
-				    &s.sessionsData, &in_sensitive, &in_public,
-				    &outside_info, &pcrs, &obj_handle,
-				    &out_public, &creation_data, &creation_hash,
-				    &creation_ticket, &out_name,
-				    &s.sessionsDataOut);
+	UINT32 rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context,
+					   TPM_RH_OWNER, &s.sessionsData,
+					   &in_sensitive, &in_public,
+					   &outside_info, &creation_pcrs,
+					   &obj_handle, &out_public,
+					   &creation_data, &creation_hash,
+					   &creation_ticket, &out_name,
+					   &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to create and load the primary key "
 		    "(%#x)\n", rc);
@@ -218,23 +251,49 @@ cryptfs_tpm2_create_primary_key(int pcr_bound, char *auth_password)
 
 int
 cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
-			       int pcr_bound, char *auth_password)
+			       TPMI_ALG_HASH pcr_bank_alg,
+			       char *auth_password)
 {
+	TPML_PCR_SELECTION creation_pcrs;
+	TPM2B_DIGEST policy_digest;
+	TPMI_ALG_HASH name_alg;
+	if (pcr_bank_alg != TPM_ALG_NULL) {
+		unsigned int pcr_index = CRYPTFS_TPM2_PCR_INDEX;
+
+		creation_pcrs.count = 1;
+		creation_pcrs.pcrSelections->hash = pcr_bank_alg;
+		creation_pcrs.pcrSelections->sizeofSelect = 3;
+		creation_pcrs.pcrSelections->pcrSelect[0] = 0;
+		creation_pcrs.pcrSelections->pcrSelect[1] = 0;
+		creation_pcrs.pcrSelections->pcrSelect[2] = 0;
+		creation_pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
+			(1 << (pcr_index % 8));
+
+		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
+		if (set_pcr_policy(&creation_pcrs, policy_digest_alg,
+				   &policy_digest))
+			return -1;
+
+		name_alg = pcr_bank_alg;
+	} else {
+		creation_pcrs.count = 0;
+		policy_digest.b.size = 0;
+		name_alg = TPM_ALG_SHA1;
+	}
+
+	passphrase_size = (passphrase && passphrase_size) ?
+			  passphrase_size : 0;
 	TPM2B_PUBLIC in_public;
-	UINT32 rc;
-
-	passphrase_size = (passphrase && passphrase_size) ? passphrase_size : 0;
-
-	if (set_public(TPM_ALG_KEYEDHASH, TPM_ALG_SHA256, 0, passphrase_size,
-		       &in_public, NULL))
+	if (set_public(TPM_ALG_KEYEDHASH, name_alg, 0, passphrase_size,
+		       &in_public, &policy_digest))
 		return -1;
 
 	TPM2B_SENSITIVE_CREATE in_sensitive;
-	in_sensitive.t.sensitive.userAuth.t.size = strlen(CRYPTFS_TPM2_PASSPHRASE_SECRET);
+	in_sensitive.t.sensitive.userAuth.t.size =
+		strlen(CRYPTFS_TPM2_PASSPHRASE_SECRET);
 	memcpy(in_sensitive.t.sensitive.userAuth.t.buffer,
 	       CRYPTFS_TPM2_PASSPHRASE_SECRET,
 	       in_sensitive.t.sensitive.userAuth.t.size);
-
 	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.b.size + 2;
 	if (passphrase_size) {
 		in_sensitive.t.sensitive.data.t.size = passphrase_size;
@@ -243,46 +302,35 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	} else
 		in_sensitive.t.sensitive.data.t.size = 0;
 
-	TPML_PCR_SELECTION creation_pcr;
-
-	if (pcr_bound) {
-		creation_pcr.count = 1;
-		creation_pcr.pcrSelections->hash = TPM_ALG_SHA256;
-		creation_pcr.pcrSelections->sizeofSelect = 3;
-		creation_pcr.pcrSelections->pcrSelect[0] = 0;
-		creation_pcr.pcrSelections->pcrSelect[1] = 0;
-		creation_pcr.pcrSelections->pcrSelect[2] = 0;
-		creation_pcr.pcrSelections->pcrSelect[(CRYPTFS_TPM2_PCR_INDEX)/8] |=
-			1 << ((CRYPTFS_TPM2_PCR_INDEX) % 8);
-	} else
-		creation_pcr.count = 0;
-
-	TPM2B_DATA outside_info = { { 0, } };
-	TPM2B_CREATION_DATA creation_data = { { 0, } };
-	TPM2B_DIGEST creation_hash = { { sizeof(TPM2B_DIGEST)-2, } };
-	TPMT_TK_CREATION creation_ticket = { 0, };
-	TPM2B_PUBLIC out_public = { { 0, } };
-	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE)-2, } };
-
 	struct session_complex s;
 	password_session_create(&s, CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
 
-	rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context, CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
-			     &s.sessionsData, &in_sensitive, &in_public,
-			     &outside_info, &creation_pcr, &out_private,
-			     &out_public, &creation_data, &creation_hash,
-			     &creation_ticket, &s.sessionsDataOut);
+	TPM2B_DATA outside_info = { { 0, } };
+	TPM2B_CREATION_DATA creation_data = { { 0, } };
+	TPM2B_DIGEST creation_hash = { { sizeof(TPM2B_DIGEST) - 2, } };
+	TPMT_TK_CREATION creation_ticket = { 0, };
+	TPM2B_PUBLIC out_public = { { 0, } };
+	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE) - 2, } };
+
+	UINT32 rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context,
+				    CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
+				    &s.sessionsData, &in_sensitive, &in_public,
+				    &outside_info, &creation_pcrs,
+				    &out_private, &out_public, &creation_data,
+				    &creation_hash, &creation_ticket,
+				    &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to create the passphrase object (%#x)\n", rc);
 		return -1;
 	}
 
-	TPM2B_NAME name_ext = { { sizeof(TPM2B_NAME)-2, } };
+	TPM2B_NAME name_ext = { { sizeof(TPM2B_NAME) - 2, } };
 	TPM_HANDLE obj_handle;
 
-	rc = Tss2_Sys_Load(cryptfs_tpm2_sys_context, CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
-			   &s.sessionsData, &out_private, &out_public, &obj_handle,
-			   &name_ext, &s.sessionsDataOut);
+	rc = Tss2_Sys_Load(cryptfs_tpm2_sys_context,
+			   CRYPTFS_TPM2_PRIMARY_KEY_HANDLE, &s.sessionsData,
+			   &out_private, &out_public, &obj_handle, &name_ext,
+			   &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to load the passphrase object (%#x)\n", rc);
 		return -1;
