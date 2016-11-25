@@ -70,10 +70,10 @@ policy_session_create(struct session_complex *s, TPM_SE type,
 					      &nonce_tpm, NULL);
 	if (rc != TPM_RC_SUCCESS) {
 		err("Unable to create a %spolicy session "
-                    "(%#x)\n", type == TPM_SE_TRIAL ? "trial " : "",
+		    "(%#x)\n", type == TPM_SE_TRIAL ? "trial " : "",
 		    rc);
-                return -1;
-        }
+		return -1;
+	}
 
 	dbg("The %spolicy session handle %#8.8x created\n",
 	    type == TPM_SE_TRIAL ? "trial " : "",

@@ -22,16 +22,17 @@ cryptfs_tpm2_unseal_passphrase(void **passphrase, size_t *passphrase_size)
 	struct session_complex s;
 	password_session_create(&s, CRYPTFS_TPM2_PASSPHRASE_SECRET);
 
-	TPM2B_SENSITIVE_DATA out_data = {{sizeof(TPM2B_SENSITIVE_DATA)-2, }};
+	TPM2B_SENSITIVE_DATA out_data = {{ sizeof(TPM2B_SENSITIVE_DATA)-2, }};
 
-	rc = Tss2_Sys_Unseal(cryptfs_tpm2_sys_context, CRYPTFS_TPM2_PASSPHRASE_HANDLE,
-			     &s.sessionsData, &out_data, &s.sessionsDataOut);
+	rc = Tss2_Sys_Unseal(cryptfs_tpm2_sys_context,
+			     CRYPTFS_TPM2_PASSPHRASE_HANDLE, &s.sessionsData,
+			     &out_data, &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to unseal the passphrase object (%#x)\n", rc);
 		return -1;
 	}
 
-	info("Succeed to unseal the passphrase (%d-byte)\n",out_data.t.size );
+	info("Succeed to unseal the passphrase (%d-byte)\n", out_data.t.size);
 
 	*passphrase = malloc(out_data.t.size);
 	if (!*passphrase)

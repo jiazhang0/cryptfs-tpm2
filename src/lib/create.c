@@ -108,7 +108,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 }
 
 static int
-set_pcr_policy(TPML_PCR_SELECTION *pcrs, TPMI_ALG_HASH policy_digest_alg,
+get_pcr_policy(TPML_PCR_SELECTION *pcrs, TPMI_ALG_HASH policy_digest_alg,
 	       TPM2B_DIGEST *policy_digest)
 {
 	/* Calculate the total number of requested PCRs */
@@ -187,7 +187,7 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 			(1 << (pcr_index % 8));
 
 		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
-		if (set_pcr_policy(&creation_pcrs, policy_digest_alg,
+		if (get_pcr_policy(&creation_pcrs, policy_digest_alg,
 				   &policy_digest))
 			return -1;
 
@@ -270,7 +270,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 			(1 << (pcr_index % 8));
 
 		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
-		if (set_pcr_policy(&creation_pcrs, policy_digest_alg,
+		if (get_pcr_policy(&creation_pcrs, policy_digest_alg,
 				   &policy_digest))
 			return -1;
 
