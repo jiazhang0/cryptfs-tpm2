@@ -57,4 +57,11 @@ policy_session_create(struct session_complex *s, TPM_SE type,
 void
 policy_session_destroy(struct session_complex *s);
 
+void
+policy_auth_set(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
+		char *auth_password);
+
+int
+capability_read_public(TPMI_DH_OBJECT handle, TPM2B_PUBLIC *public_out);
+
 #endif	/* __INTERNAL_H__ */

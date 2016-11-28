@@ -15,19 +15,34 @@
 #include "internal.h"
 
 static void
-set_password_auth(TPMS_AUTH_COMMAND *sessionData, char *auth_password)
+set_session_auth(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
+		 void *auth_password, size_t auth_password_size)
 {
-	sessionData->sessionHandle = TPM_RS_PW;
-	sessionData->nonce.t.size = 0;
-	*((UINT8 *)((void *)&sessionData->sessionAttributes)) = 0;
+	session->sessionHandle = handle;
+	session->nonce.t.size = 0;
+	*((UINT8 *)((void *)&session->sessionAttributes)) = 0;
 
-	if (!auth_password)
-		sessionData->hmac.t.size = 0;
-	else {
-		sessionData->hmac.t.size = strlen(auth_password);
-		memcpy((char *)sessionData->hmac.t.buffer, auth_password,
-		       sessionData->hmac.t.size);
-	}
+	if (auth_password && auth_password_size) {
+		session->hmac.t.size = auth_password_size;
+		memcpy(session->hmac.t.buffer, auth_password,
+		       session->hmac.t.size);
+	} else
+		session->hmac.t.size = 0;
+}
+
+static void
+set_password_auth(TPMS_AUTH_COMMAND *session, char *auth_password)
+{
+	set_session_auth(session, TPM_RS_PW, auth_password,
+			 auth_password ? strlen(auth_password) : 0);
+}
+
+void
+policy_auth_set(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
+		char *auth_password)
+{
+	set_session_auth(session, handle, auth_password,
+			 auth_password ? strlen(auth_password) : 0);
 }
 
 /*

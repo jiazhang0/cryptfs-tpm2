@@ -71,7 +71,8 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 			       char *auth_password);
 
 extern int
-cryptfs_tpm2_unseal_passphrase(void **passphrase, size_t *passphrase_size);
+cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
+			       size_t *passphrase_size);
 
 extern int
 cryptfs_tpm2_evict_primary_key(char *auth_password);

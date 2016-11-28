@@ -55,7 +55,7 @@ run_unseal(char *prog)
 		unsigned char *passphrase;
 		size_t passphrase_size;
 
-		rc = cryptfs_tpm2_unseal_passphrase((void **)&passphrase,
+		rc = cryptfs_tpm2_unseal_passphrase(TPM_ALG_NULL, (void **)&passphrase,
 						    &passphrase_size);
 		if (rc)
 			return rc;
