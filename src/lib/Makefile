@@ -17,7 +17,8 @@ OBJS_$(LIB_NAME) = \
 		   create.o \
 		   unseal.o \
 		   policy.o \
-		   hash.o
+		   hash.o \
+		   capability.o
 
 CFLAGS += -fpic
 
