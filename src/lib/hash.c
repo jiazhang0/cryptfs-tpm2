@@ -20,8 +20,8 @@ tpm_hash(TPMI_ALG_HASH hash_alg, BYTE *data, UINT16 data_len,
 {
 	TPM2B_MAX_BUFFER data_buf;
 
-	data_buf.b.size = data_len;
-	memcpy(data_buf.b.buffer, data, data_len);
+	data_buf.t.size = data_len;
+	memcpy(data_buf.t.buffer, data, data_len);
 
 	TPM2B_DIGEST digest = { { hash_size, } };
 
@@ -33,7 +33,7 @@ tpm_hash(TPMI_ALG_HASH hash_alg, BYTE *data, UINT16 data_len,
 		return -1;
 	}
 
-	memcpy(hash, digest.b.buffer, digest.b.size);
+	memcpy(hash, digest.t.buffer, digest.t.size);
 
 	return 0;
 }

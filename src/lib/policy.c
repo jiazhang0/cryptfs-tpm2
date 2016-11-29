@@ -87,24 +87,24 @@ extend_pcr_policy_digest(TPMI_DH_OBJECT session_handle,
 					/* Be lazy of using malloc() */
 					TPM2B_DIGEST data[2];
 
-					data->b.size = alg_size * 2;
-					memcpy(data->b.buffer,
-					       digest_tpm.b.buffer,
+					data->t.size = alg_size * 2;
+					memcpy(data->t.buffer,
+					       digest_tpm.t.buffer,
 					       alg_size);
-					memcpy(data->b.buffer + alg_size,
-					       pcr_digests->digests[nr_pcr].b.buffer,
+					memcpy(data->t.buffer + alg_size,
+					       pcr_digests->digests[nr_pcr].t.buffer,
 					       alg_size);
 
 					if (hash_digest(policy_digest_alg,
-							data->b.buffer,
-							data->b.size,
-							digest_tpm.b.buffer))
+							data->t.buffer,
+							data->t.size,
+							digest_tpm.t.buffer))
 						return -1;
 				} else {
 					if (hash_digest(policy_digest_alg,
-						        pcr_digests->digests[nr_pcr].b.buffer,
-						        pcr_digests->digests[nr_pcr].b.size,
-							digest_tpm.b.buffer))
+						        pcr_digests->digests[nr_pcr].t.buffer,
+						        pcr_digests->digests[nr_pcr].t.size,
+							digest_tpm.t.buffer))
 						return -1;
 				}
 
@@ -117,36 +117,6 @@ extend_pcr_policy_digest(TPMI_DH_OBJECT session_handle,
                                 NULL, &digest_tpm, &pcrs_out, NULL);
 	if (rc != TPM_RC_SUCCESS) {
 		err("Unable to set the policy for PCRs (%#x)\n", rc);
-		return -1;
-	}
-
-	return 0;
-}
-
-int
-pcr_policy_get(TPML_PCR_SELECTION *pcrs, TPMI_ALG_HASH policy_digest_alg,
-	       TPM2B_DIGEST *policy_digest)
-{
-	if (util_digest_size(policy_digest_alg, &policy_digest->b.size))
-		return -1;
-
-	struct session_complex s;
-
-	if (policy_session_create(&s, TPM_SE_TRIAL, policy_digest_alg))
-		return -1;
-
-	if (extend_pcr_policy_digest(s.session_handle, pcrs,
-				     policy_digest_alg)) {
-		policy_session_destroy(&s);
-		return -1;
-	}
-
-	UINT32 rc = Tss2_Sys_PolicyGetDigest(cryptfs_tpm2_sys_context,
-					     s.session_handle, NULL,
-					     policy_digest, NULL);
-	policy_session_destroy(&s);
-	if (rc != TPM_RC_SUCCESS) {
-		err("Unable to get the policy digest (%#x)\n", rc);
 		return -1;
 	}
 

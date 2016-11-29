@@ -72,7 +72,7 @@ policy_session_create(struct session_complex *s, TPM_SE type,
 		return -1;
 
 	if (type != TPM_SE_POLICY && type != TPM_SE_TRIAL) {
-		err("Invalid session type %#x specified\n", type);
+		err("Invalid policy session type %#x specified\n", type);
 		return -1;
 	}
 

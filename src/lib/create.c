@@ -18,7 +18,7 @@ static int
 calc_policy_digest(TPML_PCR_SELECTION *pcrs, TPMI_ALG_HASH policy_digest_alg,
 		   TPM2B_DIGEST *policy_digest)
 {
-	if (util_digest_size(policy_digest_alg, &policy_digest->b.size))
+	if (util_digest_size(policy_digest_alg, &policy_digest->t.size))
 		return -1;
 
 	struct session_complex s;
@@ -67,16 +67,16 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 		return -1;
 	}
 
-	if (policy_digest && policy_digest->b.size) {
+	if (policy_digest && policy_digest->t.size) {
 		UINT16 name_alg_size;
 
 		if (util_digest_size(name_alg, &name_alg_size))
 			return -1;
 
-		if (policy_digest->b.size < name_alg_size) {
+		if (policy_digest->t.size < name_alg_size) {
 			err("The size of policy digest (%d-byte) should be "
 			    "equal or bigger then nameAlg (%d-byte)\n",
-			    policy_digest->b.size, name_alg_size);
+			    policy_digest->t.size, name_alg_size);
 			return -1;
 		}
 	}
@@ -90,7 +90,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !sensitive_size;
 	inPublic->t.publicArea.type = type;
 
-	if (policy_digest && policy_digest->b.size)
+	if (policy_digest && policy_digest->t.size)
 		inPublic->t.publicArea.authPolicy = *policy_digest;
 	else
 		inPublic->t.publicArea.authPolicy.t.size = 0;
@@ -170,7 +170,7 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 		name_alg = pcr_bank_alg;
 	} else {
 		creation_pcrs.count = 0;
-		policy_digest.b.size = 0;
+		policy_digest.t.size = 0;
 		name_alg = TPM_ALG_SHA1;
 	}
 
@@ -185,7 +185,7 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 	memcpy((char *)in_sensitive.t.sensitive.userAuth.t.buffer,
 	       CRYPTFS_TPM2_PRIMARY_KEY_SECRET,
 	       in_sensitive.t.sensitive.userAuth.t.size);
-	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.b.size + 2;
+	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
 	in_sensitive.t.sensitive.data.t.size = 0;
 
 	struct session_complex s;
@@ -252,7 +252,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 		name_alg = pcr_bank_alg;
 	} else {
 		creation_pcrs.count = 0;
-		policy_digest.b.size = 0;
+		policy_digest.t.size = 0;
 		name_alg = TPM_ALG_SHA1;
 	}
 
@@ -269,7 +269,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	memcpy(in_sensitive.t.sensitive.userAuth.t.buffer,
 	       CRYPTFS_TPM2_PASSPHRASE_SECRET,
 	       in_sensitive.t.sensitive.userAuth.t.size);
-	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.b.size + 2;
+	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
 	if (passphrase_size) {
 		in_sensitive.t.sensitive.data.t.size = passphrase_size;
 		memcpy(in_sensitive.t.sensitive.data.t.buffer, passphrase,
