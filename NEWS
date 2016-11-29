@@ -1,3 +1,11 @@
+Version 0.4.0
+=============
+Released: 2016-11-29
+
+- Add -P option for seal/unseal command to specify the digest algorithm
+  for PCR bank selection.
+- Implement PCR binding (index 7) for sealing/unsealing the passphrase.
+
 Version 0.3.0
 =============
 Released: 2016-11-16
@@ -8,7 +16,7 @@ Version 0.2.1
 =============
 Released: 2016-11-14
 
-- Fix unsealing failure
+- Fix unsealing failure.
 
 Version 0.2.0
 =============
