@@ -28,8 +28,8 @@ show_usage(char *prog)
 		  "    key: Primary key used to seal the passphrase\n"
 		  "    all: All above\n");
 	info_cont("\nargs:\n");
-	info_cont("  --pcr-bank-alg, -P: (optional) Use the specified PCR bank to bind the "
-		  "created primary key and passphrase.\n");
+	info_cont("  --pcr-bank-alg, -P: (optional) Use the specified PCR "
+		  "bank to bind the created primary key and passphrase.\n");
 	info_cont("  --auth, -a: (optional) Set the authorization value for "
 		  "owner hierarchy.\n");
 	info_cont("  --passphrase, -p: (optional) Set the passphrase value.\n");

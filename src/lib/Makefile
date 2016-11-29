@@ -15,7 +15,9 @@ OBJS_$(LIB_NAME) = \
 		   evict.o \
 		   random.o \
 		   create.o \
-		   unseal.o
+		   unseal.o \
+		   policy.o \
+		   hash.o
 
 CFLAGS += -fpic
 

@@ -62,6 +62,19 @@ policy_auth_set(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
 		char *auth_password);
 
 int
+pcr_policy_extend(TPMI_DH_OBJECT session_handle, TPML_PCR_SELECTION *pcrs,
+		  TPMI_ALG_HASH policy_digest_alg);
+
+int
+password_policy_extend(TPMI_DH_OBJECT session_handle);
+
+int
 capability_read_public(TPMI_DH_OBJECT handle, TPM2B_PUBLIC *public_out);
+
+int
+sha1_digest(BYTE *data, UINT16 data_len, BYTE *hash);
+
+int
+hash_digest(TPMI_ALG_HASH hash_alg, BYTE *data, UINT16 data_len, BYTE *hash);
 
 #endif	/* __INTERNAL_H__ */

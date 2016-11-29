@@ -15,6 +15,18 @@
 #include "internal.h"
 
 static void
+complete_session_complex(struct session_complex *s)
+{
+	s->sessionDataArray[0] = &s->sessionData;
+	s->sessionsData.cmdAuthsCount = 1;
+	s->sessionsData.cmdAuths = s->sessionDataArray;
+
+	s->sessionDataOutArray[0] = &s->sessionDataOut;
+	s->sessionsDataOut.rspAuthsCount = 1;
+	s->sessionsDataOut.rspAuths = s->sessionDataOutArray;
+}
+
+static void
 set_session_auth(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
 		 void *auth_password, size_t auth_password_size)
 {
@@ -37,6 +49,7 @@ set_password_auth(TPMS_AUTH_COMMAND *session, char *auth_password)
 			 auth_password ? strlen(auth_password) : 0);
 }
 
+/* TODO: move this call to policy_session_create() */
 void
 policy_auth_set(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
 		char *auth_password)
@@ -90,6 +103,8 @@ policy_session_create(struct session_complex *s, TPM_SE type,
 		return -1;
 	}
 
+	complete_session_complex(s);
+
 	dbg("The %spolicy session handle %#8.8x created\n",
 	    type == TPM_SE_TRIAL ? "trial " : "",
 	    s->session_handle);
@@ -100,6 +115,9 @@ policy_session_create(struct session_complex *s, TPM_SE type,
 void
 policy_session_destroy(struct session_complex *s)
 {
+	if (!s->session_handle)
+		return;
+
 	UINT32 rc = Tss2_Sys_FlushContext(cryptfs_tpm2_sys_context,
 					  s->session_handle);
 	if (rc == TPM_RC_SUCCESS)
@@ -113,11 +131,8 @@ void
 password_session_create(struct session_complex *s, char *auth_password)
 {
 	set_password_auth(&s->sessionData, auth_password);
-	s->sessionDataArray[0] = &s->sessionData;
-	s->sessionsData.cmdAuthsCount = 1;
-	s->sessionsData.cmdAuths = s->sessionDataArray;
 
-	s->sessionDataOutArray[0] = &s->sessionDataOut;
-	s->sessionsDataOut.rspAuthsCount = 1;
-	s->sessionsDataOut.rspAuths = s->sessionDataOutArray;
+	s->session_handle = 0;
+
+	complete_session_complex(s);
 }

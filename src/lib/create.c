@@ -15,6 +15,40 @@
 #include "internal.h"
 
 static int
+calc_policy_digest(TPML_PCR_SELECTION *pcrs, TPMI_ALG_HASH policy_digest_alg,
+		   TPM2B_DIGEST *policy_digest)
+{
+	if (util_digest_size(policy_digest_alg, &policy_digest->b.size))
+		return -1;
+
+	struct session_complex s;
+
+	if (policy_session_create(&s, TPM_SE_TRIAL, policy_digest_alg))
+		return -1;
+
+	if (pcr_policy_extend(s.session_handle, pcrs, policy_digest_alg)) {
+		policy_session_destroy(&s);
+		return -1;
+	}
+
+	if (password_policy_extend(s.session_handle)) {
+		policy_session_destroy(&s);
+		return -1;
+	}
+
+	UINT32 rc = Tss2_Sys_PolicyGetDigest(cryptfs_tpm2_sys_context,
+					     s.session_handle, NULL,
+					     policy_digest, NULL);
+	policy_session_destroy(&s);
+	if (rc != TPM_RC_SUCCESS) {
+		err("Unable to get the policy digest (%#x)\n", rc);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int
 set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	   size_t sensitive_size, TPM2B_PUBLIC *inPublic,
 	   TPM2B_DIGEST *policy_digest)
@@ -107,66 +141,6 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	return 0;
 }
 
-static int
-get_pcr_policy(TPML_PCR_SELECTION *pcrs, TPMI_ALG_HASH policy_digest_alg,
-	       TPM2B_DIGEST *policy_digest)
-{
-	/* Calculate the total number of requested PCRs */
-	unsigned int nr_pcr = 0;
-	for (UINT32 c = 0; c < pcrs->count; ++c) {
-		TPMS_PCR_SELECTION *pcr_sel = pcrs->pcrSelections + c;
-
-		for (UINT8 s = 0; s < pcr_sel->sizeofSelect; ++s) {
-			BYTE *sel = pcr_sel->pcrSelect + s;
-
-			for (unsigned int i = 0; i < sizeof(BYTE) * 8; ++i) {
-				if (*sel & (1 << i))
-					++nr_pcr;
-			}
-		}
-	}
-
-	if (!nr_pcr) {
-		info("No PCR policy applied");
-		return 0;
-	}
-
-	TPML_DIGEST pcr_digests;
-	UINT32 pcr_update_counter;
-	TPML_PCR_SELECTION pcrs_out;
-
-	UINT32 rc = Tss2_Sys_PCR_Read(cryptfs_tpm2_sys_context, NULL, pcrs,
-				      &pcr_update_counter, &pcrs_out,
-				      &pcr_digests, NULL);
-	if (rc != TPM_RC_SUCCESS) {
-		err("Unable to read the PCRs (%#x)\n", rc);
-		return -1;
-	}
-
-	struct session_complex s;
-	if (policy_session_create(&s, TPM_SE_TRIAL, policy_digest_alg))
-		return -1;
-
-	rc = Tss2_Sys_PolicyPCR(cryptfs_tpm2_sys_context, s.session_handle,
-                                NULL, pcr_digests.digests, &pcrs_out, NULL);
-	if (rc != TPM_RC_SUCCESS) {
-		policy_session_destroy(&s);
-		err("Unable to set the policy for PCRs (%#x)\n", rc);
-		return -1;
-	}
-
-	rc = Tss2_Sys_PolicyGetDigest(cryptfs_tpm2_sys_context,
-				      s.session_handle, NULL,
-				      policy_digest, NULL);
-	policy_session_destroy(&s);
-	if (rc != TPM_RC_SUCCESS) {
-		err("Unable to get the policy digest (%#x)\n", rc);
-		return -1;
-	}
-
-	return 0;
-}
-
 int
 cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 				char *auth_password)
@@ -174,6 +148,7 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
 	TPMI_ALG_HASH name_alg;
+
 	if (pcr_bank_alg != TPM_ALG_NULL) {
 		unsigned int pcr_index = CRYPTFS_TPM2_PCR_INDEX;
 
@@ -187,8 +162,8 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 			(1 << (pcr_index % 8));
 
 		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
-		if (get_pcr_policy(&creation_pcrs, policy_digest_alg,
-				   &policy_digest))
+		if (calc_policy_digest(&creation_pcrs, policy_digest_alg,
+				       &policy_digest))
 			return -1;
 
 		name_alg = pcr_bank_alg;
@@ -270,8 +245,8 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 			(1 << (pcr_index % 8));
 
 		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
-		if (get_pcr_policy(&creation_pcrs, policy_digest_alg,
-				   &policy_digest))
+		if (calc_policy_digest(&creation_pcrs, policy_digest_alg,
+				       &policy_digest))
 			return -1;
 
 		name_alg = pcr_bank_alg;
@@ -339,7 +314,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	/* TODO: check whether already persisted. TPM_RC_NV_DEFINED (0x14c) */
 	rc = cryptfs_tpm2_persist_passphrase(obj_handle, auth_password);
 	if (rc) {
-        	err("Unable to persist the passphrase object\n");
+		err("Unable to persist the passphrase object\n");
 		return -1;
 	}
 
