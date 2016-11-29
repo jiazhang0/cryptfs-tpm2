@@ -20,6 +20,11 @@ tpm_hash(TPMI_ALG_HASH hash_alg, BYTE *data, UINT16 data_len,
 {
 	TPM2B_MAX_BUFFER data_buf;
 
+	if (data_len > sizeof(data_buf.t.buffer)) {
+		err("The data to be hashed is too large\n");
+		return -1;
+	}
+
 	data_buf.t.size = data_len;
 	memcpy(data_buf.t.buffer, data, data_len);
 
@@ -33,7 +38,7 @@ tpm_hash(TPMI_ALG_HASH hash_alg, BYTE *data, UINT16 data_len,
 		return -1;
 	}
 
-	memcpy(hash, digest.t.buffer, digest.t.size);
+	memcpy(hash, digest.t.buffer, hash_size);
 
 	return 0;
 }
