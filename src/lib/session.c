@@ -33,6 +33,7 @@ set_session_auth(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
 	session->sessionHandle = handle;
 	session->nonce.t.size = 0;
 	*((UINT8 *)((void *)&session->sessionAttributes)) = 0;
+	session->sessionAttributes.continueSession = 1;
 
 	if (auth_password && auth_password_size) {
 		session->hmac.t.size = auth_password_size;
