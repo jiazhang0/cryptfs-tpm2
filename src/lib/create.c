@@ -70,7 +70,9 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	if (policy_digest && policy_digest->b.size) {
 		UINT16 name_alg_size;
 
-		util_digest_size(name_alg, &name_alg_size);
+		if (util_digest_size(name_alg, &name_alg_size))
+			return -1;
+
 		if (policy_digest->b.size < name_alg_size) {
 			err("The size of policy digest (%d-byte) should be "
 			    "equal or bigger then nameAlg (%d-byte)\n",
@@ -154,10 +156,9 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 
 		creation_pcrs.count = 1;
 		creation_pcrs.pcrSelections->hash = pcr_bank_alg;
-		creation_pcrs.pcrSelections->sizeofSelect = 3;
-		creation_pcrs.pcrSelections->pcrSelect[0] = 0;
-		creation_pcrs.pcrSelections->pcrSelect[1] = 0;
-		creation_pcrs.pcrSelections->pcrSelect[2] = 0;
+		creation_pcrs.pcrSelections->sizeofSelect = PCR_SELECT_MAX;
+		memset(creation_pcrs.pcrSelections->pcrSelect, 0,
+		       PCR_SELECT_MAX);
 		creation_pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
 			(1 << (pcr_index % 8));
 
@@ -237,10 +238,9 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 
 		creation_pcrs.count = 1;
 		creation_pcrs.pcrSelections->hash = pcr_bank_alg;
-		creation_pcrs.pcrSelections->sizeofSelect = 3;
-		creation_pcrs.pcrSelections->pcrSelect[0] = 0;
-		creation_pcrs.pcrSelections->pcrSelect[1] = 0;
-		creation_pcrs.pcrSelections->pcrSelect[2] = 0;
+		creation_pcrs.pcrSelections->sizeofSelect = PCR_SELECT_MAX;
+		memset(creation_pcrs.pcrSelections->pcrSelect, 0,
+		       PCR_SELECT_MAX);
 		creation_pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
 			(1 << (pcr_index % 8));
 

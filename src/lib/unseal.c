@@ -31,10 +31,8 @@ cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 
 		pcrs.count = 1;
 		pcrs.pcrSelections->hash = pcr_bank_alg;
-		pcrs.pcrSelections->sizeofSelect = 3;
-		pcrs.pcrSelections->pcrSelect[0] = 0;
-		pcrs.pcrSelections->pcrSelect[1] = 0;
-		pcrs.pcrSelections->pcrSelect[2] = 0;
+		pcrs.pcrSelections->sizeofSelect = PCR_SELECT_MAX;
+		memset(pcrs.pcrSelections->pcrSelect, 0, PCR_SELECT_MAX);
 		pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
 			(1 << (pcr_index % 8));
 
