@@ -115,7 +115,7 @@ policy_session_create(struct session_complex *s, TPM_SE type,
 void
 policy_session_destroy(struct session_complex *s)
 {
-	if (!s->session_handle)
+	if (s->session_handle == TPM_RS_PW)
 		return;
 
 	UINT32 rc = Tss2_Sys_FlushContext(cryptfs_tpm2_sys_context,
@@ -132,7 +132,7 @@ password_session_create(struct session_complex *s, char *auth_password)
 {
 	set_password_auth(&s->sessionData, auth_password);
 
-	s->session_handle = 0;
+	s->session_handle = TPM_RS_PW;
 
 	complete_session_complex(s);
 }
