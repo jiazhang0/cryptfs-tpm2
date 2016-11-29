@@ -1,11 +1,12 @@
 Cryptfs-TPM2
 ============
 
-This project provides with an implementation for storing/restoring a
-passphrase with TPM 2.0. The passphrase and its associated primary
-key are automatically created by RNG engine in TPM. In order to avoid
-saving the context file, the created passphrase and primary key are always
-persistent in TPM.
+This project provides with an implementation used to create, persist,
+evict a passphrase for full-disk-encryption with TPM 2.0.
+
+The passphrase and its associated primary key may be created by RNG engine
+in TPM or manually typed. In order to avoid saving the context file, the
+created passphrase and primary key are always persistent in TPM.
 
 Currently, the resulting binaries consist of cryptfs-tpm2 and
 libcryptfs-tpm2.so.
@@ -36,13 +37,28 @@ Clear TPM through setting the security jumper on the board.
 Note: always specify -a option if a password for owner hierarchy is set.
 
 - Create the primary key and passphrase
+
+The typical method is to create the primary key and passphrase by TPM.
 # cryptfs-tpm2 seal all
-or
+
+Manually typed passphrase is also supported.
 # cryptfs-tpm2 seal all -p <passphrase>
-to type the passphrase explicitly.
+
+PCR (index 7) binding is more secure.
+# cryptfs-tpm2 seal all -P sha1
 
 - Retrieve the passphrase
 # cryptfs-tpm2 unseal passphrase
+or
+# cryptfs-tpm2 unseal passphrase -P sha1
+if PCR binding is used.
+
+- Evict the primary key and passphrase
+
+CAUTION: beware of the permanent loss of them and assoicated data
+encryption if you do this.
+
+# cryptfs-tpm2 evict all
 
 Known issues
 ------------
