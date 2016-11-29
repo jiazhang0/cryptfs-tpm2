@@ -50,7 +50,6 @@ cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 		/* TODO: move this call to policy_session_create() */
 		policy_auth_set(&s.sessionData, s.session_handle,
 				CRYPTFS_TPM2_PASSPHRASE_SECRET);
-
 	} else
 		password_session_create(&s, CRYPTFS_TPM2_PASSPHRASE_SECRET);
 

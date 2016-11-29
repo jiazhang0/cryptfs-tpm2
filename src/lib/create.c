@@ -233,6 +233,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
 	TPMI_ALG_HASH name_alg;
+
 	if (pcr_bank_alg != TPM_ALG_NULL) {
 		unsigned int pcr_index = CRYPTFS_TPM2_PCR_INDEX;
 
