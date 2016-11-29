@@ -222,7 +222,7 @@ function open_luks_part_with_encrypted_passphrase
     sleep 1
 
     # Unseal the passphrase
-    ! cryptfs-tpm2 unseal passphrase -o "$TMP_DIR/$PASSPHRASE" &&
+    ! cryptfs-tpm2 -q unseal passphrase -P sha1 -o "$TMP_DIR/$PASSPHRASE" &&
         print_error "Unable to unseal the passphrase" && return 1
 
     ! cryptsetup luksOpen --key-file "$TMP_DIR/$PASSPHRASE" "$luks_rawdev" "$LUKS_NAME" &&

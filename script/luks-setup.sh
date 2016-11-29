@@ -287,7 +287,7 @@ if [ $OPT_NO_TPM -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
             cryptfs-tpm2 -q evict all
 
-            ! cryptfs-tpm2 -q seal all &&
+            ! cryptfs-tpm2 -q seal all -P sha1 &&
                 print_error "Unable to create the primary key and passphrase" &&
                 exit 1
         fi
