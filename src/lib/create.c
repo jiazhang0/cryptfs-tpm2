@@ -67,6 +67,8 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 		return -1;
 	}
 
+	int use_policy = 0;
+
 	if (policy_digest && policy_digest->t.size) {
 		UINT16 name_alg_size;
 
@@ -79,18 +81,20 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 			    policy_digest->t.size, name_alg_size);
 			return -1;
 		}
+
+		use_policy = 1;
 	}
 
 	*(UINT32 *)&(inPublic->t.publicArea.objectAttributes) = 0;
 	inPublic->t.publicArea.objectAttributes.restricted = 1;
-	inPublic->t.publicArea.objectAttributes.userWithAuth = 1;
+	inPublic->t.publicArea.objectAttributes.userWithAuth = set_key ? 1: !use_policy;
 	inPublic->t.publicArea.objectAttributes.decrypt = 1;
 	inPublic->t.publicArea.objectAttributes.fixedTPM = 1;
 	inPublic->t.publicArea.objectAttributes.fixedParent = 1;
 	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !sensitive_size;
 	inPublic->t.publicArea.type = type;
 
-	if (policy_digest && policy_digest->t.size)
+	if (use_policy)
 		inPublic->t.publicArea.authPolicy = *policy_digest;
 	else
 		inPublic->t.publicArea.authPolicy.t.size = 0;
