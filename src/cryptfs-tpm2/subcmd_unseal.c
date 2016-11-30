@@ -81,12 +81,12 @@ run_unseal(char *prog)
 		if (rc)
 			return rc;
 
-		dbg_cont("Dumping the passphrase:\n");
-		for (size_t i = 0; i < passphrase_size; i++)
-			dbg_cont("0x%02x ", passphrase[i]);
-		dbg_cont("\n");
-
-		if (opt_output_file)
+		if (!opt_output_file) {
+			info("Dumping the passphrase:\n");
+			for (size_t i = 0; i < passphrase_size; i++)
+				info_cont("0x%02x ", passphrase[i]);
+			info_cont("\n");
+		} else
 			rc = save_output_file(opt_output_file, passphrase,
 					      passphrase_size);
 	}
