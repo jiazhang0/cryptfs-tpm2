@@ -1,3 +1,11 @@
+Version 0.4.1
+=============
+Released: 2016-11-30
+
+- Don't allow to unseal the passphrase without policy session if the
+  created passphrase requires a policy session.
+- script: support to use PCR binding
+
 Version 0.4.0
 =============
 Released: 2016-11-29
