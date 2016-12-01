@@ -25,7 +25,7 @@ CFLAGS += -fpic
 all: $(LIB_TARGETS) Makefile
 
 clean:
-	@$(RM) $(LIB_TARGETS) $(OBJS_$(LIB_NAME)) $(addsuffix .*, $(LIB_TARGETS)) cryptfs_tpm2_build_info.c
+	@$(RM) $(LIB_TARGETS) $(OBJS_$(LIB_NAME)) $(addsuffix .*, $(LIB_TARGETS)) build_info.c
 
 install: all
 	$(INSTALL) -d -m 755 $(DESTDIR)$(libdir)

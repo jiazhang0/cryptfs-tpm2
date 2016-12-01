@@ -21,6 +21,3 @@ clean:
 install: all
 	$(INSTALL) -d -m 755 $(DESTDIR)$(sbindir)
 	$(INSTALL) -m 700 $(BIN_NAME) $(DESTDIR)$(sbindir)
-
-include $(TOPDIR)/env.mk
-include $(TOPDIR)/rules.mk
