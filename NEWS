@@ -1,3 +1,10 @@
+Version 0.4.2
+=============
+Released: 2016-12-14
+
+- init.cryptfs: fix boot failures
+- Report build failure if failing to compile in a subdirectory.
+
 Version 0.4.1
 =============
 Released: 2016-11-30
