@@ -41,6 +41,7 @@ LUKS_NAME="${4:-cryptfs}"
 TPM_TIS_MODULE_LOADED=0
 TPM_CRB_MODULE_LOADED=0
 TPM_DEVICE=""
+TMP_DIR_MOUNTED=0
 
 function print_critical
 {
@@ -303,7 +304,6 @@ function trap_handler
     if [ $err -ne 0 ]; then
         if [ -d "$ROOTFS_DIR" ]; then
             umount "$ROOTFS_DIR" 2>/dev/null
-            rm -rf "$ROOTFS_DIR" 2>/dev/null
         fi
 
         cryptsetup luksClose "$LUKS_NAME" 2>/dev/null
@@ -311,14 +311,14 @@ function trap_handler
 
     rm -f "$TMP_DIR/$PASSPHRASE" 2>/dev/null
 
-    pkill -9 resourcemgr
+    pkill -9 resourcemgr 2>/dev/null
     [ $TPM_TIS_MODULE_LOADED -eq 1 ] && modprobe --quiet -r tpm_tis
     [ $TPM_CRB_MODULE_LOADED -eq 1 ] && modprobe --quiet -r tpm_crb    
     [ ! -z "$TPM_DEVICE" ] && rm -f "$TPM_DEVICE" 2>/dev/null
 
     if [ $TMP_DIR_MOUNTED -eq 1 ]; then
         umount "$TMP_DIR" 2>/dev/null
-        rm -rf "$TMP_DIR" 2>/dev/null
+        rmdir --ignore-fail-on-non-empty "$TMP_DIR" 2>/dev/null
     fi
 }
 
@@ -332,9 +332,23 @@ luks_rawdev_pathes="$(blkid -o list | grep crypto_LUKS | awk '{ print $1 }')"
 
 ! parse_rootfs_dev_path rootfs_dev_path_type rootfs_dev_path_name && exit 1
 
+get_rawdev $rootfs_dev_path_type $rootfs_dev_path_name rootfs_rawdev
+if [ $? -eq 0 ]; then
+    # Check whether the rootfs device is a LUKS partition.
+    err=1
+    for luks_rawdev in $luks_rawdev_pathes; do
+        [ "$rootfs_rawdev" = "$luks_rawdev" ] && err=0 && break
+    done
+
+    if [ $err -eq 1 ]; then
+        print_info "The specified rootfs is not a LUKS partition"
+        exit 1
+    fi
+fi
+
 # root=LABEL=xxx cannot be parsed until the LUKS partition is mounted.
-! get_rawdev $rootfs_dev_path_type $rootfs_dev_path_name rootfs_rawdev &&
-    [ "$rootfs_dev_path_type" != "LABEL" ] && exit 1
+[ "$rootfs_dev_path_type" != "LABEL" ] &&
+    print_error "Unable to locate the specified rootfs" && exit 1
 
 # Overwrite LUKS_NAME if root=LABEL=xxx is specified.
 [ "$rootfs_dev_path_type" = "LABEL" ] && [ -n "$rootfs_dev_path_name" ] &&
@@ -348,7 +362,6 @@ if ! create_dir "$TMP_DIR"; then
     exit 1
 fi
 
-TMP_DIR_MOUNTED=0
 if ! grep -q "$TMP_DIR" /proc/mounts; then
    ! mount -t tmpfs none "$TMP_DIR" 2>/dev/null &&
        print_error "Unable to mount tmpfs filesystem" && exit 1
