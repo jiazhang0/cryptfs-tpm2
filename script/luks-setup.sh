@@ -285,7 +285,8 @@ if [ $OPT_NO_TPM -eq 0 ]; then
     detect_tpm
     if [ $? -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
-            cryptfs-tpm2 -q evict all
+            # Ignore the error messages if something gets wrong
+            cryptfs-tpm2 -q evict all 2>/dev/null
 
             ! cryptfs-tpm2 -q seal all -P sha1 &&
                 print_error "Unable to create the primary key and passphrase" &&
