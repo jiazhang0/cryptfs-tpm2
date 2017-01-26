@@ -108,7 +108,7 @@ libcryptfs_tpm2_init(void)
 
 	rc = init_tcti_context();
 	if (rc != TSS2_RC_SUCCESS)
-		return;
+		exit(200);
 
 	init_sys_context();
 }
