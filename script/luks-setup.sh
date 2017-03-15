@@ -285,6 +285,8 @@ if [ $OPT_NO_TPM -eq 0 ]; then
     detect_tpm
     if [ $? -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
+            tpm2_takeownership -c
+
             # Ignore the error messages if something gets wrong
             cryptfs-tpm2 -q evict all 2>/dev/null
 
