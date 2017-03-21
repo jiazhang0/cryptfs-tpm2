@@ -1,3 +1,10 @@
+Version 0.4.3
+=============
+Released: 2017-03-22
+
+- Secure the secrets for accessing the primary key and passphrase.
+- Add the workaround for tpm2_create() with Intel fTPM.
+
 Version 0.4.2
 =============
 Released: 2016-12-14
