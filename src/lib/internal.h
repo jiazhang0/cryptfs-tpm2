@@ -15,20 +15,11 @@
 
 #include <cryptfs_tpm2.h>
 
-/* The persiste handle value for the primary key */
-#define CRYPTFS_TPM2_PRIMARY_KEY_HANDLE		0x817FFFFF
-
-/* The persiste handle value for the passphrase */
-#define CRYPTFS_TPM2_PASSPHRASE_HANDLE		0x817FFFFE
-
 /* The authorization password for the primary key */
 #define CRYPTFS_TPM2_PRIMARY_KEY_SECRET		"H31i05"
 
 /* The authorization password for the passphrase */
 #define CRYPTFS_TPM2_PASSPHRASE_SECRET		"h31i05"
-
-/* The PCR index used to seal/unseal the passphrase */
-#define CRYPTFS_TPM2_PCR_INDEX			7
 
 struct session_complex {
 	TPMI_SH_AUTH_SESSION session_handle;
