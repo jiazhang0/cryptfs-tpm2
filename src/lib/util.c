@@ -123,3 +123,16 @@ cryptfs_tpm2_util_file_exists(const char *file_path)
 
 	return !stat(file_path, &statbuf);
 }
+
+void
+cryptfs_tpm2_util_hex_dump(const char *prompt, uint8_t *data,
+			   unsigned int data_size)
+{
+	if (prompt)
+		dbg("%s (%d-byte): ", prompt, data_size);
+
+	for (uint8_t i = 0; i < data_size; ++i)
+		dbg_cont("%02x", data[i]);
+
+	dbg_cont("\n");
+}

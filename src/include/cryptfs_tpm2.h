@@ -58,6 +58,10 @@ cryptfs_tpm2_util_mkdir(const char *dir, mode_t mode);
 extern bool
 cryptfs_tpm2_util_file_exists(const char *file_path);
 
+extern void
+cryptfs_tpm2_util_hex_dump(const char *prompt, uint8_t *data,
+                            unsigned int data_size);
+
 extern int
 cryptefs_tpm2_get_random(void *random, UINT16 req_size);
 
