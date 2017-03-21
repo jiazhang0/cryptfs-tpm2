@@ -40,6 +40,9 @@
 		}	\
 	} while (0)
 
+/* The maximum length of passphrase explicitly specified */
+#define CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE	32
+
 extern const char *cryptfs_tpm2_git_commit;
 extern const char *cryptfs_tpm2_build_machine;
 

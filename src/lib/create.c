@@ -237,6 +237,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
 	TPMI_ALG_HASH name_alg;
+	TPM2B_DIGEST random_passphrase = { { sizeof(TPM2B_DIGEST) - 2, } };
 
 	if (pcr_bank_alg != TPM_ALG_NULL) {
 		unsigned int pcr_index = CRYPTFS_TPM2_PCR_INDEX;
@@ -261,6 +262,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 		name_alg = TPM_ALG_SHA1;
 	}
 
+tpm2_create_errata_0x2c2:
 	passphrase_size = (passphrase && passphrase_size) ?
 			  passphrase_size : 0;
 	TPM2B_PUBLIC in_public;
@@ -300,6 +302,30 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 				    &creation_hash, &creation_ticket,
 				    &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
+		/*
+		 * Work around the 0x2c2 error code for certain TPM device
+		 * such as Intel fTPM.
+		 */
+		if (rc == (TPM_RC_ATTRIBUTES | TPM_RC_P | TPM_RC_2) &&
+		    !passphrase_size) {
+			rc = Tss2_Sys_GetRandom(cryptfs_tpm2_sys_context, NULL,
+						CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE,
+						&random_passphrase, NULL);
+			if (rc != TPM_RC_SUCCESS) {
+				err("Unable to generate random for passphrase "
+				    "(%#x)\n", rc);
+				return -1;
+			}
+
+			passphrase = (char *)random_passphrase.t.buffer;
+			passphrase_size = random_passphrase.t.size;
+
+			cryptfs_tpm2_util_hex_dump("TPM2 RNG passphrase",
+						   (uint8_t *)passphrase,
+						   passphrase_size);
+			goto tpm2_create_errata_0x2c2;
+		}
+
         	err("Unable to create the passphrase object (%#x)\n", rc);
 		return -1;
 	}
