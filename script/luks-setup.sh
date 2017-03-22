@@ -2,7 +2,7 @@
 
 # The wrapper script for the creation of LUKS partition
 #
-# Copyright (c) 2016, Wind River Systems, Inc.
+# Copyright (c) 2016-2017, Lans Zhang <jia.zhang@windriver.com>, Wind River Systems, Inc.
 # All rights reserved.
 #
 # See "LICENSE" for license terms.
@@ -156,7 +156,7 @@ function show_help()
 $PROG_NAME - creation tool for LUKS partition
 Version: $VERSION
 
-(C)Copyright 2016, Wind River Systems, Inc.
+(C)Copyright 2016-2017, Lans Zhang <jia.zhang@windriver.com>, Wind River Systems, Inc.
 
 Usage: $1 options...
 

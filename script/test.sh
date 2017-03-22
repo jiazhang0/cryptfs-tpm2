@@ -2,7 +2,7 @@
 
 # Cryptfs-TPM2 testing script
 # 
-# Copyright (c) 2016, Wind River Systems, Inc.
+# Copyright (c) 2016-2017, Lans Zhang <jia.zhang@windriver.com>, Wind River Systems, Inc.
 # All rights reserved.
 # 
 # See "LICENSE" for license terms.
