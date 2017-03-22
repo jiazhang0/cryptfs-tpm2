@@ -82,7 +82,9 @@ run_unseal(char *prog)
 			return rc;
 
 		if (!opt_output_file) {
-			info("Dumping the passphrase:\n");
+			info("Dumping the passphrase (%Zd-byte):\n",
+			     passphrase_size);
+
 			for (size_t i = 0; i < passphrase_size; i++)
 				info_cont("0x%02x ", passphrase[i]);
 			info_cont("\n");
