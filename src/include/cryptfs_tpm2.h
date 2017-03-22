@@ -71,35 +71,41 @@ extern bool
 cryptfs_tpm2_util_file_exists(const char *file_path);
 
 extern void
-cryptfs_tpm2_util_hex_dump(const char *prompt, uint8_t *data,
-                            unsigned int data_size);
+cryptfs_tpm2_util_hex_dump(const char *prompt, const uint8_t *data,
+			   unsigned int data_size);
 
 extern int
 cryptefs_tpm2_get_random(void *random, UINT16 req_size);
 
 extern int
 cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
-				char *auth_password);
+				char *auth_password,
+				unsigned int auth_password_size);
 
 extern int
 cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
                                TPMI_ALG_HASH pcr_bank_alg,
-			       char *auth_password);
+			       char *auth_password,
+			       unsigned int auth_password_size);
 
 extern int
 cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 			       size_t *passphrase_size);
 
 extern int
-cryptfs_tpm2_evict_primary_key(char *auth_password);
+cryptfs_tpm2_evict_primary_key(char *auth_password,
+			       unsigned int auth_password_size);
 
 extern int
-cryptfs_tpm2_evict_passphrase(char *auth_password);
+cryptfs_tpm2_evict_passphrase(char *auth_password,
+			      unsigned int auth_password_size);
 
 extern int
-cryptfs_tpm2_persist_primary_key(TPMI_DH_OBJECT handle, char *auth_password);
+cryptfs_tpm2_persist_primary_key(TPMI_DH_OBJECT handle, char *auth_password,
+				 unsigned int auth_password_size);
 
 extern int
-cryptfs_tpm2_persist_passphrase(TPMI_DH_OBJECT handle, char *auth_password);
+cryptfs_tpm2_persist_passphrase(TPMI_DH_OBJECT handle, char *auth_password,
+				unsigned int auth_password_size);
 
 #endif	/* CRYPTFS_TPM2_H */

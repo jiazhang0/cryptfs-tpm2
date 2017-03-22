@@ -15,12 +15,6 @@
 
 #include <cryptfs_tpm2.h>
 
-/* The authorization password for the primary key */
-#define CRYPTFS_TPM2_PRIMARY_KEY_SECRET		"H31i05"
-
-/* The authorization password for the passphrase */
-#define CRYPTFS_TPM2_PASSPHRASE_SECRET		"h31i05"
-
 struct session_complex {
 	TPMI_SH_AUTH_SESSION session_handle;
 
@@ -39,7 +33,8 @@ int
 util_digest_size(TPMI_ALG_HASH hash_alg, UINT16 *alg_size);
 
 void
-password_session_create(struct session_complex *s, char *auth_password);
+password_session_create(struct session_complex *s, char *auth_password,
+			unsigned int auth_password_size);
 
 int
 policy_session_create(struct session_complex *s, TPM_SE type,
@@ -50,7 +45,7 @@ policy_session_destroy(struct session_complex *s);
 
 void
 policy_auth_set(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
-		char *auth_password);
+		char *auth_password, unsigned int auth_password_size);
 
 int
 pcr_policy_extend(TPMI_DH_OBJECT session_handle, TPML_PCR_SELECTION *pcrs,
@@ -67,5 +62,11 @@ sha1_digest(BYTE *data, UINT16 data_len, BYTE *hash);
 
 int
 hash_digest(TPMI_ALG_HASH hash_alg, BYTE *data, UINT16 data_len, BYTE *hash);
+
+const char *
+get_primary_key_secret(char *out, unsigned int *out_size);
+
+const char *
+get_passphrase_secret(char *out, unsigned int *out_size);
 
 #endif	/* __INTERNAL_H__ */

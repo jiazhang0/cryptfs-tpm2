@@ -44,19 +44,22 @@ set_session_auth(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
 }
 
 static void
-set_password_auth(TPMS_AUTH_COMMAND *session, char *auth_password)
+set_password_auth(TPMS_AUTH_COMMAND *session, char *auth_password,
+		  unsigned int auth_password_size)
 {
 	set_session_auth(session, TPM_RS_PW, auth_password,
-			 auth_password ? strlen(auth_password) : 0);
+			 auth_password && auth_password_size ?
+			 auth_password_size : 0);
 }
 
 /* TODO: move this call to policy_session_create() */
 void
 policy_auth_set(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
-		char *auth_password)
+		char *auth_password, unsigned int auth_password_size)
 {
 	set_session_auth(session, handle, auth_password,
-			 auth_password ? strlen(auth_password) : 0);
+			 auth_password && auth_password_size ?
+			 auth_password_size : 0);
 }
 
 /*
@@ -129,9 +132,10 @@ policy_session_destroy(struct session_complex *s)
 }
 
 void
-password_session_create(struct session_complex *s, char *auth_password)
+password_session_create(struct session_complex *s, char *auth_password,
+			unsigned int auth_password_size)
 {
-	set_password_auth(&s->sessionData, auth_password);
+	set_password_auth(&s->sessionData, auth_password, auth_password_size);
 
 	s->session_handle = TPM_RS_PW;
 

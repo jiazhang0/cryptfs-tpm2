@@ -102,7 +102,10 @@ run_seal(char *prog)
 
 	if (opt_setup_key) {
 		rc = cryptfs_tpm2_create_primary_key(opt_pcr_bank_alg,
-						     opt_auth_password);
+						     opt_auth_password,
+						     opt_auth_password ?
+						     strlen(opt_auth_password) :
+						     0);
 		if (rc)
 			return rc;
 	}
@@ -117,7 +120,10 @@ run_seal(char *prog)
 
 		rc = cryptfs_tpm2_create_passphrase(opt_passphrase, size,
 						    opt_pcr_bank_alg,
-						    opt_auth_password);
+						    opt_auth_password,
+						    opt_auth_password ?
+						    strlen(opt_auth_password) :
+						    0);
 		if (rc)
 			return rc;
 	}

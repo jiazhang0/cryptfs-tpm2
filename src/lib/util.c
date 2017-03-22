@@ -125,7 +125,7 @@ cryptfs_tpm2_util_file_exists(const char *file_path)
 }
 
 void
-cryptfs_tpm2_util_hex_dump(const char *prompt, uint8_t *data,
+cryptfs_tpm2_util_hex_dump(const char *prompt, const uint8_t *data,
 			   unsigned int data_size)
 {
 	if (prompt)

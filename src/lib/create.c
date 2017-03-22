@@ -149,7 +149,8 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 
 int
 cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
-				char *auth_password)
+				char *auth_password,
+				unsigned int auth_password_size)
 {
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
@@ -183,17 +184,21 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 		       &policy_digest))
 		return -1;
 
+	char secret[256];
+	unsigned int secret_size = sizeof(secret);
+
+	get_primary_key_secret(secret, &secret_size);
+
 	TPM2B_SENSITIVE_CREATE in_sensitive;
-	in_sensitive.t.sensitive.userAuth.t.size =
-		strlen(CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
+
+	in_sensitive.t.sensitive.userAuth.t.size = secret_size;
 	memcpy((char *)in_sensitive.t.sensitive.userAuth.t.buffer,
-	       CRYPTFS_TPM2_PRIMARY_KEY_SECRET,
-	       in_sensitive.t.sensitive.userAuth.t.size);
+	       secret, in_sensitive.t.sensitive.userAuth.t.size);
 	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
 	in_sensitive.t.sensitive.data.t.size = 0;
 
 	struct session_complex s;
-	password_session_create(&s, auth_password);
+	password_session_create(&s, auth_password, auth_password_size);
 
 	TPM2B_DATA outside_info = { { 0, } };
 	TPM2B_NAME out_name = { { sizeof(TPM2B_NAME) - 2, } };
@@ -217,7 +222,8 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 		return -1;
 	}
 
-	rc = cryptfs_tpm2_persist_primary_key(obj_handle, auth_password);
+	rc = cryptfs_tpm2_persist_primary_key(obj_handle, auth_password,
+					      auth_password_size);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to persist the primary key\n");
 		return -1;
@@ -232,7 +238,8 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 int
 cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 			       TPMI_ALG_HASH pcr_bank_alg,
-			       char *auth_password)
+			       char *auth_password,
+			       unsigned int auth_password_size)
 {
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
@@ -270,12 +277,16 @@ tpm2_create_errata_0x2c2:
 		       &in_public, &policy_digest))
 		return -1;
 
+	char secret[256];
+	unsigned int secret_size = sizeof(secret);
+
+	get_passphrase_secret(secret, &secret_size);
+
 	TPM2B_SENSITIVE_CREATE in_sensitive;
-	in_sensitive.t.sensitive.userAuth.t.size =
-		strlen(CRYPTFS_TPM2_PASSPHRASE_SECRET);
+
+	in_sensitive.t.sensitive.userAuth.t.size = secret_size;
 	memcpy(in_sensitive.t.sensitive.userAuth.t.buffer,
-	       CRYPTFS_TPM2_PASSPHRASE_SECRET,
-	       in_sensitive.t.sensitive.userAuth.t.size);
+	       secret, in_sensitive.t.sensitive.userAuth.t.size);
 	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
 	if (passphrase_size) {
 		in_sensitive.t.sensitive.data.t.size = passphrase_size;
@@ -285,7 +296,10 @@ tpm2_create_errata_0x2c2:
 		in_sensitive.t.sensitive.data.t.size = 0;
 
 	struct session_complex s;
-	password_session_create(&s, CRYPTFS_TPM2_PRIMARY_KEY_SECRET);
+
+	secret_size = sizeof(secret);
+	get_primary_key_secret(secret, &secret_size);
+	password_session_create(&s, (char *)secret, secret_size);
 
 	TPM2B_DATA outside_info = { { 0, } };
 	TPM2B_CREATION_DATA creation_data = { { 0, } };
@@ -343,7 +357,8 @@ tpm2_create_errata_0x2c2:
 	}
 
 	/* TODO: check whether already persisted. TPM_RC_NV_DEFINED (0x14c) */
-	rc = cryptfs_tpm2_persist_passphrase(obj_handle, auth_password);
+	rc = cryptfs_tpm2_persist_passphrase(obj_handle, auth_password,
+					     auth_password_size);
 	if (rc) {
 		err("Unable to persist the passphrase object\n");
 		return -1;

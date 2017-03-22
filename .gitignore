@@ -2,5 +2,9 @@ src/cryptfs-tpm2/cryptfs-tpm2
 *.o
 *.so
 *.a
+*.secret
 src/lib/build_info.c
+src/lib/secret.c
+script/encrypt_secret.py
 *.patch
+*.swp

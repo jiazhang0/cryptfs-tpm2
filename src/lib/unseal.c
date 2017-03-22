@@ -19,6 +19,10 @@ cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 			       size_t *passphrase_size)
 {
 	struct session_complex s;
+	char secret[256];
+	unsigned int secret_size = sizeof(secret);
+
+	get_passphrase_secret(secret, &secret_size);
 
 	if (pcr_bank_alg != TPM_ALG_NULL) {
 		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
@@ -49,9 +53,9 @@ cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 
 		/* TODO: move this call to policy_session_create() */
 		policy_auth_set(&s.sessionData, s.session_handle,
-				CRYPTFS_TPM2_PASSPHRASE_SECRET);
+				(char *)secret, secret_size);
 	} else
-		password_session_create(&s, CRYPTFS_TPM2_PASSPHRASE_SECRET);
+		password_session_create(&s, (char *)secret, secret_size);
 
 	TPM2B_SENSITIVE_DATA out_data = {{ sizeof(TPM2B_SENSITIVE_DATA)-2, }};
 

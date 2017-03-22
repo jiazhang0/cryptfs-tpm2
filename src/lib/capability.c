@@ -39,7 +39,7 @@ capability_read_public(TPMI_DH_OBJECT handle, TPM2B_PUBLIC *public_out)
 
         	/* Actually TPM2_ReadPublic doesn't require any authorization */
         	struct session_complex s;
-		password_session_create(&s, NULL);
+		password_session_create(&s, NULL, 0);
 
 		TPM2B_NAME name = { { sizeof(TPM2B_NAME)-2, } };
 		TPM2B_NAME qualified_name = { { sizeof(TPM2B_NAME)-2, } };
