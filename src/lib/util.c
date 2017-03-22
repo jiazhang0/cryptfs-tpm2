@@ -31,6 +31,10 @@
 
 #include <cryptfs_tpm2.h>
 
+#ifndef O_LARGEFILE
+  #define O_LARGEFILE		0
+#endif
+
 static int show_verbose;
 
 int
@@ -125,11 +129,11 @@ cryptfs_tpm2_util_mkdir(const char *dir, mode_t mode)
                 if (*dir_name) {
                         if (mkdir(dir_name, mode) && errno != EEXIST) {
                                 err("Unable to create directory %s", dir_name);
-                                eee_mfree(dir_name);
+                                free(dir_name);
                                 return -1;
                         }
                 }
-                eee_mfree(dir_name);
+                free(dir_name);
         } while (dir != dir_delim);
 
         return 0;
@@ -154,4 +158,84 @@ cryptfs_tpm2_util_hex_dump(const char *prompt, const uint8_t *data,
 		dbg_cont("%02x", data[i]);
 
 	dbg_cont("\n");
+}
+
+int
+cryptfs_tpm2_util_load_file(const char *file_path, uint8_t **out,
+			    unsigned long *out_len)
+{
+	FILE *fp;
+	uint8_t *buf;
+	unsigned int size;
+	int ret;
+
+	dbg("Opening file %s ...\n", file_path);
+
+	fp = fopen(file_path, "rb");
+	if (!fp) {
+		err("Failed to open file %s.\n", file_path);
+		return -1;
+	}
+
+	if (fseek(fp, 0, SEEK_END)) {
+		ret = -1;
+		err("Failed to seek the end of file.\n");
+		goto err;
+	}
+
+	size = ftell(fp);
+	if (!size) {
+		ret = -1;
+		err("Empty file.\n");
+		goto err;
+	}
+
+	rewind(fp);
+
+	buf = (uint8_t *)malloc(size);
+	if (!buf) {
+		ret = -1;
+		err("Failed to allocate memory for file.\n");
+		goto err;
+	}
+
+	if (fread(buf, size, 1, fp) != 1) {
+		ret = -1;
+		err("Failed to read file.\n");
+		free(buf);
+	} else {
+		*out = buf;
+		*out_len = size;
+		ret = 0;
+	}
+
+err:
+	fclose(fp);
+
+	return ret;
+}
+
+int
+cryptfs_tpm2_util_save_output_file(const char *file_path, uint8_t *buf,
+				   unsigned long size)
+{
+	FILE *fp;
+
+	dbg("Saving output file %s ...\n", file_path);
+
+	fp = fopen(file_path, "w");
+	if (!fp) {
+		err("Failed to create output file.\n");
+		return -1;
+	}
+
+	if (fwrite(buf, size, 1, fp) != 1) {
+		fclose(fp);
+		err("Failed to write output file.\n");
+		return -1;
+	}
+
+	fclose(fp);
+
+	return 0;
 }

@@ -32,7 +32,7 @@
 #ifndef SUBCOMMAND_H
 #define SUBCOMMAND_H
 
-#include <eee.h>
+#include <cryptfs_tpm2.h>
 
 typedef struct {
 	const char *name;

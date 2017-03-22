@@ -10,7 +10,6 @@ OBJS_$(LIB_NAME) = \
 		   build_info.o \
 		   secret_area.o \
 		   secret.o \
-		   linux.o \
 		   subcommand.o \
 		   util.o \
 		   session.o \

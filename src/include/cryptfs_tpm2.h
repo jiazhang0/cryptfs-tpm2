@@ -32,7 +32,29 @@
 #ifndef CRYPTFS_TPM2_H
 #define CRYPTFS_TPM2_H
 
-#include <eee.h>
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <ctype.h>
+#include <errno.h>
+#include <unistd.h>
+#include <string.h>
+#include <alloca.h>
+#include <getopt.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <assert.h>
+#include <signal.h>
+#include <time.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/syscall.h>
+#include <linux/limits.h>
+
 #include <subcommand.h>
 
 #include <sapi/tpm20.h>
@@ -71,6 +93,62 @@
 /* The persiste handle value for the passphrase */
 #define CRYPTFS_TPM2_PASSPHRASE_HANDLE		0x817FFFFE
 
+typedef unsigned int		bool;
+
+#define gettid()		syscall(__NR_gettid)
+
+#define __pr__(level, fmt, ...)	\
+	do {	\
+		time_t __t__ = time(NULL);	\
+		struct tm __loc__;	\
+		localtime_r(&__t__, &__loc__);	\
+		char __buf__[64]; \
+		strftime(__buf__, sizeof(__buf__), "%a %b %e %T %Z %Y", &__loc__);	\
+		fprintf(stderr, "%s: [" #level "] " fmt, __buf__, ##__VA_ARGS__);	\
+	} while (0)
+
+#define die(fmt, ...)	\
+	do {	\
+		__pr__(FAULT, fmt, ##__VA_ARGS__);	\
+		exit(EXIT_FAILURE);	\
+	} while (0)
+
+#ifdef DEBUG
+  #define dbg(fmt, ...)	\
+	do {	\
+		__pr__(DEBUG, fmt, ##__VA_ARGS__);	\
+	} while (0)
+
+  #define dbg_cont(fmt, ...)	\
+	do {	\
+		fprintf(stdout, fmt, ##__VA_ARGS__);	\
+	} while (0)
+#else
+  #define dbg(fmt, ...)
+  #define dbg_cont(fmt, ...)
+#endif
+
+#define info(fmt, ...)	\
+	do {	\
+		__pr__(INFO, fmt, ##__VA_ARGS__);	\
+	} while (0)
+
+#define info_cont(fmt, ...)	\
+	fprintf(stdout, fmt, ##__VA_ARGS__)
+
+#define warn(fmt, ...)	\
+	do {	\
+		__pr__(WARNING, fmt, ##__VA_ARGS__);	\
+	} while (0)
+
+#define err(fmt, ...)	\
+	do {	\
+		__pr__(ERROR, fmt, ##__VA_ARGS__);	\
+	} while (0)
+
+#define err_cont(fmt, ...)	\
+	fprintf(stdout, fmt, ##__VA_ARGS__)
+
 extern const char *cryptfs_tpm2_git_commit;
 extern const char *cryptfs_tpm2_build_machine;
 
@@ -92,6 +170,14 @@ cryptfs_tpm2_util_file_exists(const char *file_path);
 extern void
 cryptfs_tpm2_util_hex_dump(const char *prompt, const uint8_t *data,
 			   unsigned int data_size);
+
+extern int
+cryptfs_tpm2_util_load_file(const char *file_path, uint8_t **out,
+			    unsigned long *out_len);
+
+extern int
+cryptfs_tpm2_util_save_output_file(const char *file_path, uint8_t *buf,
+				   unsigned long size);
 
 extern int
 cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size);

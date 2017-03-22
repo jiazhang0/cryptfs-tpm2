@@ -108,8 +108,9 @@ run_unseal(char *prog)
 				info_cont("0x%02x ", passphrase[i]);
 			info_cont("\n");
 		} else
-			rc = save_output_file(opt_output_file, passphrase,
-					      passphrase_size);
+			rc = cryptfs_tpm2_util_save_output_file(opt_output_file,
+								passphrase,
+								passphrase_size);
 	}
 
 	return rc;

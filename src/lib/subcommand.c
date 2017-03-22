@@ -59,7 +59,7 @@ subcommand_find(char *subcmd)
 	unsigned int i;
 
 	for (i = 0; i < nr_subcommand; ++i) {
-		if (!eee_strcmp(subcmd, subcommands[i]->name))
+		if (!strcmp(subcmd, subcommands[i]->name))
 			break;
 	}
 	if (i == nr_subcommand)
@@ -99,7 +99,7 @@ subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 		default:	/* Command arguments */
 			subcmd_arg_parsed = 1;
 			if (cmd->parse_arg(opt, optarg)) {
-				if (eee_strcmp(subcmd, "help"))
+				if (strcmp(subcmd, "help"))
 					cmd->show_usage(prog);
 				return -1;
 			}
@@ -108,7 +108,7 @@ subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 
 	if (!subcmd_arg_parsed) {
 		err("Nothing specified\n");
-		if (eee_strcmp(cmd->name, "help"))
+		if (strcmp(cmd->name, "help"))
 			err(". Run \"%s help %s \" for the help info\n",
 			    prog, subcmd);
 		else
