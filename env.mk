@@ -29,7 +29,8 @@ LDFLAGS := --warn-common --no-undefined --fatal-warnings \
 CFLAGS := -D_GNU_SOURCE -std=gnu99 -O2 -Wall -Werror \
 	  $(addprefix -I, $(TOPDIR)/src/include \
 	  $(tpm2_tss_includedir)) \
-	  -L$(tpm2_tss_libdir) -lsapi -ltcti-socket \
+	  $(addprefix $(join -L,),$(tpm2_tss_libdir)) \
+	  -lsapi -ltcti-socket \
 	  $(EXTRA_CFLAGS) $(addprefix $(join -Wl,,),$(LDFLAGS))
 
 ifneq ($(DEBUG_BUILD),)
