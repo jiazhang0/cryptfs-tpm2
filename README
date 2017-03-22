@@ -5,17 +5,31 @@ This project provides with an implementation used to create, persist,
 evict a passphrase for full-disk-encryption with TPM 2.0.
 
 The passphrase and its associated primary key may be created by RNG engine
-in TPM or manually typed. In order to avoid saving the context file, the
-created passphrase and primary key are always persistent in TPM.
+in TPM or manually typed. In order to avoid saving the context file on the
+untrustworthy media, the created passphrase and primary key are always
+persistent in TPM.
 
 Currently, the resulting binaries consist of cryptfs-tpm2 and
 libcryptfs-tpm2.so.
 
 Build
 -----
-$ make
+This package depends on TPM2.0-TSS library. Download it (see the section
+"Reference" for the download link) and run the script "bootstrap" to compile
+the library, then switch to root of cryptfs-tpm2 and run "make" to build
+cryptfs-tpm2.
 
-Note: use "CROSS_COMPILE=" in command line to specify cross compilation.
+Alternately, specifying the macros tpm2_tss_includedir and tpm2_tss_libdir
+to build cryptfs-tpm2 with TPM2.0-TSS even though it was built but not
+installed. For example:
+
+$ export TSS2_ROOT=<path_to_TPM2.0-TSS>
+$ tpm2_tss_includedir=$TSS2_ROOT/include \
+  tpm2_tss_libdir="$TSS2_ROOT/sysapi/.libs $TSS2_ROOT/tcti/.libs" \
+  make
+
+Note: define the macro "CROSS_COMPILE=" in command line if specifying cross
+compilation.
 
 Installation
 ------------
@@ -33,32 +47,43 @@ Help
 Quick start
 -----------
 - Preparation
-Clear TPM through setting the security jumper on the board.
-Note: always specify -a option if a password for owner hierarchy is set.
+Clear TPM 2.0 device through setting the security jumper on the board or
+running tpm2_takeownership -c. The latter is provided by tpm2.0-tools.
+
+Note: cryptfs-tpm2 will create the primary key and passphrase in the owner
+hierarchy and so always specify -a or --auth option with cryptfs-tpm2 to
+set the authorization value for accessing owner hierarchy if required.
 
 - Create the primary key and passphrase
-
-The typical method is to create the primary key and passphrase by TPM.
+The typical method is to create the primary key and passphrase by TPM 2.0.
 # cryptfs-tpm2 seal all
 
 Manually typed passphrase is also supported.
 # cryptfs-tpm2 seal all -p <passphrase>
 
 PCR (index 7) binding is more secure.
-# cryptfs-tpm2 seal all -P sha1
+# cryptfs-tpm2 seal all -P <digest>
+where <digest> may be "sha1" or "sha256" (if supported by TPM 2.0 device)
 
 - Retrieve the passphrase
-# cryptfs-tpm2 unseal passphrase
+# cryptfs-tpm2 unseal passphrase -o <saved_passphrase>
 or
-# cryptfs-tpm2 unseal passphrase -P sha1
+# cryptfs-tpm2 unseal passphrase -P <digest> -o <saved_passphrase>
 if PCR binding is used.
 
 - Evict the primary key and passphrase
+# cryptfs-tpm2 evict all
 
 CAUTION: beware of the permanent loss of them and assoicated data
 encryption if you do this.
 
-# cryptfs-tpm2 evict all
-
 Known issues
 ------------
+
+Reference
+---------
+TPM2.0-TSS - The TCG TPM2 Software Stack
+https://github.com/01org/TPM2.0-TSS
+
+tpm2.0-tools - The TPM 2.0 tools
+https://github.com/01org/tpm2.0-tools
