@@ -85,7 +85,7 @@
 #define CRYPTFS_TPM2_PCR_INDEX			7
 
 /* The maximum length of passphrase explicitly specified */
-#define CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE	32
+#define CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE	64
 
 /* The persiste handle value for the primary key */
 #define CRYPTFS_TPM2_PRIMARY_KEY_HANDLE		0x817FFFFF
