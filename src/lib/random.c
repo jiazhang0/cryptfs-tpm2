@@ -34,25 +34,26 @@
 #include "internal.h"
 
 int
-cryptefs_tpm2_get_random(void *random, UINT16 req_size)
+cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size)
 {
-	TPM2B_DIGEST random_bytes = { { sizeof(TPM2B_DIGEST)-2, } };
+	TPM2B_DIGEST random_bytes = { { sizeof(TPM2B_DIGEST) - 2, } };
 	TPM_RC rc;
 
-	rc = Tss2_Sys_GetRandom(cryptfs_tpm2_sys_context, NULL, req_size,
+	rc = Tss2_Sys_GetRandom(cryptfs_tpm2_sys_context, NULL, *req_size,
 				&random_bytes, NULL);
 	if (rc != TSS2_RC_SUCCESS) {
 		err("Unable to get the random number (%#x)\n", rc);
 		return -1;
 	}
 
-	dbg("random number size: %d-byte\n", random_bytes.t.size);
-	for (UINT16 i = 0; i < random_bytes.t.size; i++)
-		dbg_cont("%#2.2x ", random_bytes.t.buffer[i]);
-	dbg_cont("\n");
+	if (random_bytes.t.size < *req_size) {
+		*req_size = random_bytes.t.size;
+		warn("Random number truncated to %d-byte\n",
+		     random_bytes.t.size);
+	}
 
-	if (random_bytes.t.size < req_size)
-		warn("Random number truncated to %d-byte\n", random_bytes.t.size);
+	cryptfs_tpm2_util_hex_dump("RNG random", random_bytes.t.buffer,
+				   random_bytes.t.size);
 
 	memcpy(random, random_bytes.t.buffer, random_bytes.t.size);
 

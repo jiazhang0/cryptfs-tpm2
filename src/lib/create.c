@@ -263,7 +263,6 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
 	TPMI_ALG_HASH name_alg;
-	TPM2B_DIGEST random_passphrase = { { sizeof(TPM2B_DIGEST) - 2, } };
 
 	if (pcr_bank_alg != TPM_ALG_NULL) {
 		unsigned int pcr_index = CRYPTFS_TPM2_PCR_INDEX;
@@ -341,21 +340,15 @@ tpm2_create_errata_0x2c2:
 		 */
 		if (rc == (TPM_RC_ATTRIBUTES | TPM_RC_P | TPM_RC_2) &&
 		    !passphrase_size) {
-			rc = Tss2_Sys_GetRandom(cryptfs_tpm2_sys_context, NULL,
-						CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE,
-						&random_passphrase, NULL);
+			passphrase_size = CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE;
+			rc = cryptefs_tpm2_get_random((uint8_t *)passphrase,
+						      &passphrase_size);
 			if (rc != TPM_RC_SUCCESS) {
 				err("Unable to generate random for passphrase "
 				    "(%#x)\n", rc);
 				return -1;
 			}
 
-			passphrase = (char *)random_passphrase.t.buffer;
-			passphrase_size = random_passphrase.t.size;
-
-			cryptfs_tpm2_util_hex_dump("TPM2 RNG passphrase",
-						   (uint8_t *)passphrase,
-						   passphrase_size);
 			goto tpm2_create_errata_0x2c2;
 		}
 
