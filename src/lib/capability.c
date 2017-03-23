@@ -122,6 +122,7 @@ weight_digest_algorithm(TPMI_ALG_HASH hash_alg)
 	return 0;
 }
 
+#ifdef DEBUG
 static const char *
 show_algorithm_name(TPM_ALG_ID alg)
 {
@@ -196,6 +197,7 @@ show_algorithm_name(TPM_ALG_ID alg)
 
 	return NULL;
 }
+#endif
 
 bool
 cryptfs_tpm2_capability_digest_algorithm_supported(TPMI_ALG_HASH *hash_alg)
@@ -287,7 +289,7 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 	TPMI_ALG_HASH preferred_alg = TPM_ALG_NULL;
 	unsigned int weight = 0;
 
-	for (unsigned int i = 0; i < banks->count; ++i) {
+	for (i = 0; i < banks->count; ++i) {
 		TPMI_ALG_HASH bank_alg;
 
 		bank_alg = banks->pcrSelections[i].hash;
