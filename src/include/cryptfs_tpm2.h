@@ -32,7 +32,7 @@
 #ifndef CRYPTFS_TPM2_H
 #define CRYPTFS_TPM2_H
 
-
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -93,8 +93,6 @@
 /* The persiste handle value for the passphrase */
 #define CRYPTFS_TPM2_PASSPHRASE_HANDLE		0x817FFFFE
 
-typedef unsigned int		bool;
-
 #define gettid()		syscall(__NR_gettid)
 
 #define __pr__(level, fmt, ...)	\
@@ -151,6 +149,8 @@ typedef unsigned int		bool;
 
 extern const char *cryptfs_tpm2_git_commit;
 extern const char *cryptfs_tpm2_build_machine;
+
+#define TPM_ALG_AUTO		0x4000
 
 extern int
 cryptfs_tpm2_util_verbose(void);
@@ -212,5 +212,11 @@ cryptfs_tpm2_persist_primary_key(TPMI_DH_OBJECT handle, char *auth_password,
 extern int
 cryptfs_tpm2_persist_passphrase(TPMI_DH_OBJECT handle, char *auth_password,
 				unsigned int auth_password_size);
+
+extern bool
+cryptfs_tpm2_capability_digest_supported(TPMI_ALG_HASH *hash_alg);
+
+bool
+cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg);
 
 #endif	/* CRYPTFS_TPM2_H */

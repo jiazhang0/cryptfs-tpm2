@@ -63,7 +63,9 @@ Manually typed passphrase is also supported.
 
 PCR (index 7) binding is more secure.
 # cryptfs-tpm2 seal all -P <digest>
-where <digest> may be "sha1" or "sha256" (if supported by TPM 2.0 device)
+where <digest> may be "sha1" or "sha256" or anything else if supported by
+TPM 2.0 device, or specify "auto" which will chooses the highest strength
+digest algorithm.
 
 - Retrieve the passphrase
 # cryptfs-tpm2 unseal passphrase -o <saved_passphrase>

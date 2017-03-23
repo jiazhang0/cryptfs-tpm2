@@ -83,10 +83,18 @@ parse_arg(int opt, char *optarg)
 			opt_pcr_bank_alg = TPM_ALG_SHA512;
 		else if (!strcasecmp(optarg, "sm3_256"))
 			opt_pcr_bank_alg = TPM_ALG_SM3_256;
+		else if (!strcasecmp(optarg, "auto"))
+			opt_pcr_bank_alg = TPM_ALG_AUTO;
 		else {
 			err("Unrecognized PCR bank algorithm\n");
 			return -1;
 		}
+
+		if (cryptfs_tpm2_capability_pcr_bank_supported(&opt_pcr_bank_alg) == false) {
+			err("Unsupported PCR bank algorithm\n");
+			return -1;
+		}
+
 		break;
 	case 1:
 		if (!strcasecmp(optarg, "key"))
