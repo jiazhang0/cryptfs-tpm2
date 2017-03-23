@@ -40,6 +40,8 @@ function check_ownership()
 
 function seal_all()
 {
+	echo "Sealing all ..."
+
 	local opts=""
 
 	if [ -n "$1" ]; then
@@ -60,6 +62,8 @@ function seal_all()
 
 function unseal_passphrase()
 {
+	echo "Unsealing passphrase ..."
+
 	local opts=""
 
 	if [ -n "$1" ]; then
@@ -80,6 +84,8 @@ function unseal_passphrase()
 
 function evict_all()
 {
+	echo "Evicting all ..."
+
 	cryptfs-tpm2 -q evict all
 }
 
