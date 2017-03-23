@@ -94,7 +94,8 @@ check_ownership
 
 evict_all >/dev/null 2>&1
 
-log=`mktemp cryptfs-tpm2-test-XXXX`
+log=`mktemp /tmp/cryptfs-tpm2-test-log-XXXX`
+echo "The testing log is placed at $log"
 
 echo -n "[*] testing object generation without PCR ... "
 test_all >$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
