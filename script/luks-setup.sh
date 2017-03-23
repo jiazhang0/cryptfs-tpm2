@@ -124,7 +124,7 @@ function create_luks_partition()
     print_info "Creating the LUKS partition $luks_name ..."
 
     if [ "$tpm_absent" = "0" ]; then
-        ! cryptfs-tpm2 -q unseal passphrase -P sha1 -o "$tmp_dir/passphrase" &&
+        ! cryptfs-tpm2 -q unseal passphrase -P auto -o "$tmp_dir/passphrase" &&
             print_error "Unable to unseal the passphrase" && return 1
 
         passphrase="$tmp_dir/passphrase"
@@ -312,7 +312,7 @@ if [ $OPT_NO_TPM -eq 0 ]; then
             # Ignore the error messages if something gets wrong
             cryptfs-tpm2 -q evict all 2>/dev/null
 
-            ! cryptfs-tpm2 -q seal all -P sha1 &&
+            ! cryptfs-tpm2 -q seal all -P auto &&
                 print_error "Unable to create the primary key and passphrase" &&
                 exit 1
         fi
