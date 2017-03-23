@@ -55,7 +55,7 @@ cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size)
 	cryptfs_tpm2_util_hex_dump("RNG random", random_bytes.t.buffer,
 				   random_bytes.t.size);
 
-	memcpy(random, random_bytes.t.buffer, random_bytes.t.size);
+	memcpy(random, random_bytes.t.buffer, *req_size);
 
 	return 0;
 }
