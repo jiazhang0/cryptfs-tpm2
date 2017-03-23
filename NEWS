@@ -1,3 +1,10 @@
+Version 0.4.4
+=============
+Released: 2017-03-23
+
+- Support to specify PCR bank with "auto" to use the highest strength
+  digest algorithm.
+
 Version 0.4.3
 =============
 Released: 2017-03-22
