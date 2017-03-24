@@ -87,6 +87,9 @@
 /* The maximum length of passphrase explicitly specified */
 #define CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE	64
 
+/* The maximum length of secret for hierarchy authentication */
+#define CRYPTFS_TPM2_SECRET_MAX_SIZE		256
+
 /* The persiste handle value for the primary key */
 #define CRYPTFS_TPM2_PRIMARY_KEY_HANDLE		0x817FFFFF
 

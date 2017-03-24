@@ -203,7 +203,7 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 		       &policy_digest))
 		return -1;
 
-	char secret[256];
+	char secret[CRYPTFS_TPM2_SECRET_MAX_SIZE];
 	unsigned int secret_size = sizeof(secret);
 
 	get_primary_key_secret(secret, &secret_size);
@@ -291,12 +291,14 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 tpm2_create_errata_0x2c2:
 	passphrase_size = (passphrase && passphrase_size) ?
 			  passphrase_size : 0;
+
 	TPM2B_PUBLIC in_public;
+
 	if (set_public(TPM_ALG_KEYEDHASH, name_alg, 0, passphrase_size,
 		       &in_public, &policy_digest))
 		return -1;
 
-	char secret[256];
+	char secret[CRYPTFS_TPM2_SECRET_MAX_SIZE];
 	unsigned int secret_size = sizeof(secret);
 
 	get_passphrase_secret(secret, &secret_size);
