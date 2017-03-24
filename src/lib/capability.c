@@ -122,7 +122,28 @@ weight_digest_algorithm(TPMI_ALG_HASH hash_alg)
 	return 0;
 }
 
-#ifdef DEBUG
+static unsigned int
+digest_algorithm_base_weight(TPMI_ALG_HASH hash_alg)
+{
+	switch (hash_alg) {
+	case TPM_ALG_SHA1:
+		return 1;
+	case TPM_ALG_SHA256:
+		return 2;
+	case TPM_ALG_SM3_256:
+		return 3;
+	case TPM_ALG_SHA384:
+		return 7;
+	case TPM_ALG_SHA512:
+		return 9;
+	case TPM_ALG_NULL:
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 static const char *
 show_algorithm_name(TPM_ALG_ID alg)
 {
@@ -197,7 +218,17 @@ show_algorithm_name(TPM_ALG_ID alg)
 
 	return NULL;
 }
-#endif
+
+static bool
+is_null_hash(BYTE *hash, unsigned int hash_size)
+{
+	for (unsigned int i = 0; i < hash_size; ++i) {
+		if (hash[i])
+			return false;
+	}
+
+	return true;
+}
 
 bool
 cryptfs_tpm2_capability_digest_algorithm_supported(TPMI_ALG_HASH *hash_alg)
@@ -296,9 +327,32 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 		if (*hash_alg == bank_alg)
 			return true;
 
+		if (*hash_alg != TPM_ALG_AUTO)
+			continue;
+
 		unsigned int alg_weight;
 
 		alg_weight = weight_digest_algorithm(bank_alg);
+
+		UINT16 alg_size;
+
+		util_digest_size(bank_alg, &alg_size);
+
+		BYTE pcr_value[alg_size];
+
+		rc = cryptfs_tpm2_read_pcr(bank_alg,
+					   CRYPTFS_TPM2_PCR_INDEX,
+					   pcr_value);
+		if (rc != TPM_RC_SUCCESS)
+			continue;
+
+		if (is_null_hash(pcr_value, alg_size)) {
+			warn("%s PCR bank is unused\n",
+			     show_algorithm_name(bank_alg));
+
+			alg_weight = digest_algorithm_base_weight(bank_alg);
+		}
+
 		if (alg_weight > weight) {
 			weight = alg_weight;
 			preferred_alg = bank_alg;
@@ -312,6 +366,8 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 		return false;
 
 	*hash_alg = preferred_alg;
+
+	info("%s PCR bank voted\n", show_algorithm_name(preferred_alg));
 
 	return true;
 }
