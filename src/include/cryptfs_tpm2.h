@@ -222,4 +222,8 @@ cryptfs_tpm2_capability_digest_supported(TPMI_ALG_HASH *hash_alg);
 bool
 cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg);
 
+int
+cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
+		      BYTE *out);
+
 #endif	/* CRYPTFS_TPM2_H */

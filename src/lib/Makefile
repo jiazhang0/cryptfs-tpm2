@@ -18,6 +18,7 @@ OBJS_$(LIB_NAME) = \
 		   create.o \
 		   unseal.o \
 		   policy.o \
+		   pcr.o \
 		   hash.o \
 		   capability.o
 
