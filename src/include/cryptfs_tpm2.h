@@ -105,7 +105,7 @@
 		localtime_r(&__t__, &__loc__);	\
 		char __buf__[64]; \
 		strftime(__buf__, sizeof(__buf__), "%a %b %e %T %Z %Y", &__loc__);	\
-		fprintf(stderr, "%s: [" #level "] " fmt, __buf__, ##__VA_ARGS__);	\
+		fprintf(stdout, "%s: [" #level "] " fmt, __buf__, ##__VA_ARGS__);	\
 	} while (0)
 
 #define die(fmt, ...)	\
