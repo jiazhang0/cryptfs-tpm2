@@ -82,6 +82,21 @@ encryption if you do this.
 Known issues
 ------------
 
+Validation
+----------
+The following TPM 2.0 devices are validated with cryptfs-tpm2.
+
+dTPM:
+- Infineon TPM SLB 9665
+- STMicroelectronics ST33TPHF2ESPI
+
+fTPM:
+- Intel fTPM on Leaf Hill (rev C)
+
+sTPM:
+- IBM Software TPM
+http://ibmswtpm.sourceforge.net/ibmswtpm2.html
+
 Reference
 ---------
 TPM2.0-TSS - The TCG TPM2 Software Stack
