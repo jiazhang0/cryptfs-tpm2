@@ -104,3 +104,6 @@ https://github.com/01org/TPM2.0-TSS
 
 tpm2.0-tools - The TPM 2.0 tools
 https://github.com/01org/tpm2.0-tools
+
+meta-secure-env - a practical full-disk-encryption implementation based on Pulsar Linux
+https://github.com/WindRiver-OpenSourceLabs/meta-secure-env
