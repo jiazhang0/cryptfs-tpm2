@@ -191,7 +191,7 @@ function detect_tpm_chip
 
     [ ! -e /sys/class/tpm ] && print_info "TPM subsystem is not enabled." && return 1
 
-    depmod -a
+    depmod -a 2>/dev/null
     ! grep -q "^tpm_tis" /proc/modules && modprobe --quiet tpm_tis && TPM_TIS_MODULE_LOADED=1
     ! grep -q "^tpm_crb" /proc/modules && modprobe --quiet tpm_crb && TPM_CRB_MODULE_LOADED=1
 
@@ -239,14 +239,19 @@ function open_luks_part_with_encrypted_passphrase
 {
     local luks_rawdev="$1"
 
-    (! /usr/sbin/resourcemgr && print_info "resourcemgr killed") &
+    (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
 
-    # Wait for resourcemgr starting work.
-    sleep 1
+    while [ 1 ]; do
+        # Unseal the passphrase
+        cryptfs-tpm2 -q unseal passphrase -P auto -o "$TMP_DIR/$PASSPHRASE" 2>/dev/null
+        local res=$?
 
-    # Unseal the passphrase
-    ! cryptfs-tpm2 -q unseal passphrase -P auto -o "$TMP_DIR/$PASSPHRASE" &&
-        print_error "Unable to unseal the passphrase" && return 1
+        # Error code 200 indicates resourcemgr is not ready
+        [ $res -eq 200 ] && continue
+        [ $res -eq 0 ] && break
+
+        print_error "Unable to unseal the passphrase with the error $res" && return 1
+    done
 
     ! cryptsetup luksOpen --key-file "$TMP_DIR/$PASSPHRASE" "$luks_rawdev" "$LUKS_NAME" &&
         print_error "Unable to open the LUKS partition $luks_rawdev with the encrypted passphrase" && return 1
