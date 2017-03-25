@@ -1,3 +1,10 @@
+Version 0.5.0
+=============
+Released: 2017-03-25
+
+- Completely support auto PCR bank selection.
+- Resolve TPM_RC_ATTRIBUTES issue for the sealed data from root cause.
+
 Version 0.4.4
 =============
 Released: 2017-03-23
