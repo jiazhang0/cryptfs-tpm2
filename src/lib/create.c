@@ -288,9 +288,26 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 		name_alg = TPM_ALG_SHA1;
 	}
 
-tpm2_create_errata_0x2c2:
+	UINT32 rc;
+
 	passphrase_size = (passphrase && passphrase_size) ?
 			  passphrase_size : 0;
+	if (!passphrase_size) {
+		/*
+		 * The sealed data (decrypt == 0 and sign == 0) must not
+		 * be empty otherwise TPM_RC_ATTRIBUTES will be returned.
+		 */
+		passphrase_size = CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE;
+		rc = cryptefs_tpm2_get_random((uint8_t *)fixed_passphrase,
+					      &passphrase_size);
+		if (rc != TPM_RC_SUCCESS || !passphrase_size) {
+			err("Unable to generate random for passphrase "
+			    "(%#x)\n", rc);
+			return -1;
+		}
+
+		passphrase = fixed_passphrase;
+	}
 
 	TPM2B_PUBLIC in_public;
 
@@ -309,12 +326,9 @@ tpm2_create_errata_0x2c2:
 	memcpy(in_sensitive.t.sensitive.userAuth.t.buffer,
 	       secret, in_sensitive.t.sensitive.userAuth.t.size);
 	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
-	if (passphrase_size) {
-		in_sensitive.t.sensitive.data.t.size = passphrase_size;
-		memcpy(in_sensitive.t.sensitive.data.t.buffer, passphrase,
-		       passphrase_size);
-	} else
-		in_sensitive.t.sensitive.data.t.size = 0;
+	in_sensitive.t.sensitive.data.t.size = passphrase_size;
+	memcpy(in_sensitive.t.sensitive.data.t.buffer, passphrase,
+	       passphrase_size);
 
 	struct session_complex s;
 
@@ -329,34 +343,14 @@ tpm2_create_errata_0x2c2:
 	TPM2B_PUBLIC out_public = { { 0, } };
 	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE) - 2, } };
 
-	UINT32 rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context,
-				    CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
-				    &s.sessionsData, &in_sensitive, &in_public,
-				    &outside_info, &creation_pcrs,
-				    &out_private, &out_public, &creation_data,
-				    &creation_hash, &creation_ticket,
-				    &s.sessionsDataOut);
+	rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context,
+			     CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
+			     &s.sessionsData, &in_sensitive, &in_public,
+			     &outside_info, &creation_pcrs,
+			     &out_private, &out_public, &creation_data,
+			     &creation_hash, &creation_ticket,
+			     &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
-		/*
-		 * Work around the 0x2c2 error code for certain TPM device
-		 * such as Intel fTPM.
-		 */
-		if (rc == (TPM_RC_ATTRIBUTES | TPM_RC_P | TPM_RC_2) &&
-		    (!passphrase || !passphrase_size)) {
-			passphrase_size = CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE;
-			rc = cryptefs_tpm2_get_random((uint8_t *)fixed_passphrase,
-						      &passphrase_size);
-			if (rc != TPM_RC_SUCCESS) {
-				err("Unable to generate random for passphrase "
-				    "(%#x)\n", rc);
-				return -1;
-			}
-
-			passphrase = fixed_passphrase;
-
-			goto tpm2_create_errata_0x2c2;
-		}
-
         	err("Unable to create the passphrase object (%#x)\n", rc);
 		return -1;
 	}
