@@ -65,7 +65,13 @@ PCR (index 7) binding is more secure.
 # cryptfs-tpm2 seal all -P <digest>
 where <digest> may be "sha1" or "sha256" or anything else if supported by
 TPM 2.0 device, or specify "auto" which will chooses the highest strength
-digest algorithm.
+digest algorithm as the preference.
+
+Note: if the preferred PCR bank doesn't extend PCR index 7 ever, cryptfs-tpm2
+will still choose a weaker PCR bank as long as its PCR index 7 was extended.
+For example, assuming TPM device already enabled both SHA1 and SHA256 PCR
+banks, and if PCR 7 in SHA256 PCR bank is not extended and PCR 7 in SHA1 PCR
+bank is by BIOS or bootloader, the SHA1 PCR bank is chosen.
 
 - Retrieve the passphrase
 # cryptfs-tpm2 unseal passphrase -o <saved_passphrase>
