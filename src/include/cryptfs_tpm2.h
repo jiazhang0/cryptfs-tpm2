@@ -98,26 +98,26 @@
 
 #define gettid()		syscall(__NR_gettid)
 
-#define __pr__(level, fmt, ...)	\
+#define __pr__(level, io, fmt, ...)	\
 	do {	\
 		time_t __t__ = time(NULL);	\
 		struct tm __loc__;	\
 		localtime_r(&__t__, &__loc__);	\
 		char __buf__[64]; \
 		strftime(__buf__, sizeof(__buf__), "%a %b %e %T %Z %Y", &__loc__);	\
-		fprintf(stdout, "%s: [" #level "] " fmt, __buf__, ##__VA_ARGS__);	\
+		fprintf(io, "%s: [" #level "] " fmt, __buf__, ##__VA_ARGS__);	\
 	} while (0)
 
 #define die(fmt, ...)	\
 	do {	\
-		__pr__(FAULT, fmt, ##__VA_ARGS__);	\
+		__pr__(FAULT, stderr, fmt, ##__VA_ARGS__);	\
 		exit(EXIT_FAILURE);	\
 	} while (0)
 
 #ifdef DEBUG
   #define dbg(fmt, ...)	\
 	do {	\
-		__pr__(DEBUG, fmt, ##__VA_ARGS__);	\
+		__pr__(DEBUG, stdout, fmt, ##__VA_ARGS__);	\
 	} while (0)
 
   #define dbg_cont(fmt, ...)	\
@@ -131,7 +131,7 @@
 
 #define info(fmt, ...)	\
 	do {	\
-		__pr__(INFO, fmt, ##__VA_ARGS__);	\
+		__pr__(INFO, stdout, fmt, ##__VA_ARGS__);	\
 	} while (0)
 
 #define info_cont(fmt, ...)	\
@@ -139,12 +139,12 @@
 
 #define warn(fmt, ...)	\
 	do {	\
-		__pr__(WARNING, fmt, ##__VA_ARGS__);	\
+		__pr__(WARNING, stdout, fmt, ##__VA_ARGS__);	\
 	} while (0)
 
 #define err(fmt, ...)	\
 	do {	\
-		__pr__(ERROR, fmt, ##__VA_ARGS__);	\
+		__pr__(ERROR, stderr, fmt, ##__VA_ARGS__);	\
 	} while (0)
 
 #define err_cont(fmt, ...)	\
