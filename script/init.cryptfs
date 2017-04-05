@@ -49,6 +49,9 @@ PASSPHRASE="passphrase"
 # The maxinum number of passphrase retry
 MAX_PASSPHRASE_RETRY_COUNT=3
 
+# The timeout (second) for the rootfs device got ready
+MAX_TIMEOUT_FOR_WAITING_RAWDEV=30
+
 #
 # Global variable settings
 #
@@ -160,7 +163,7 @@ function parse_rootfs_dev_path
     return 0
 }
 
-function get_rawdev
+function __get_rawdev
 {
     local type="$1"
     local name="$2"
@@ -180,7 +183,22 @@ function get_rawdev
         return 0
     fi
 
-    print_error "Unable to find raw device for $type=$name!"
+    return 1
+}
+
+function get_rawdev
+{
+    local retry=0
+
+    while [ $retry -lt $MAX_TIMEOUT_FOR_WAITING_RAWDEV ]; do
+        __get_rawdev "$1" "$2" "$3"
+        [ $? -eq 0 ] && return 0
+
+        sleep 0.1
+        retry=$(($retry+1))
+    done
+
+    print_error "Unable to find raw device for $1=$2!"
 
     return 1
 }
