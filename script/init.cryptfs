@@ -377,26 +377,26 @@ luks_rawdev_pathes="$(blkid -o list | grep crypto_LUKS | awk '{ print $1 }')"
 
 ! parse_rootfs_dev_path rootfs_dev_path_type rootfs_dev_path_name && exit 1
 
+rootfs_is_luks=0
 get_rawdev $rootfs_dev_path_type $rootfs_dev_path_name rootfs_rawdev
 if [ $? -eq 0 ]; then
     # Check whether the rootfs device is a LUKS partition.
-    err=1
     for luks_rawdev in $luks_rawdev_pathes; do
-        [ "$rootfs_rawdev" = "$luks_rawdev" ] && err=0 && break
+        [ "$rootfs_rawdev" = "$luks_rawdev" ] && rootfs_is_luks=1 && break
     done
 
-    if [ $err -eq 1 ]; then
+    if [ $rootfs_is_luks -eq 0 ]; then
         print_info "The specified rootfs is not a LUKS partition"
         exit 1
     fi
 fi
 
 # root=LABEL=xxx cannot be parsed until the LUKS partition is mounted.
-[ "$rootfs_dev_path_type" != "LABEL" ] &&
+[ $rootfs_is_luks -eq 0 -a "$rootfs_dev_path_type" != "LABEL" ] &&
     print_error "Unable to locate the specified rootfs" && exit 1
 
 # Overwrite LUKS_NAME if root=LABEL=xxx is specified.
-[ "$rootfs_dev_path_type" = "LABEL" ] && [ -n "$rootfs_dev_path_name" ] &&
+[ $rootfs_is_luks -eq 0 -a "$rootfs_dev_path_type" = "LABEL" -a -n "$rootfs_dev_path_name" ] &&
     LUKS_NAME="$rootfs_dev_path_name"
 
 # Make sure the plain passphrase will be saved in a RAM-based
@@ -440,8 +440,12 @@ for luks_rawdev in $luks_rawdev_pathes; do
     ! map_luks $luks_rawdev $tpm_absent && break
     ! mount_luks && break
 
-    [ -z "$rootfs_rawdev" ] && ! get_rawdev $rootfs_dev_path_type $rootfs_dev_path_name rootfs_rawdev &&
-        continue
+    [ -z "$rootfs_rawdev" ] && ! get_rawdev $rootfs_dev_path_type \
+        $rootfs_dev_path_name rootfs_rawdev && {
+            umount "$ROOTFS_DIR" 2>/dev/null
+            cryptsetup luksClose "$LUKS_NAME" 2>/dev/null
+            continue
+        }
 
     err=0
     break
