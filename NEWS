@@ -1,3 +1,9 @@
+Version 0.5.1
+=============
+Released: 2017-04-09
+
+- Fix the criticial issues in init.cryptfs.
+
 Version 0.5.0
 =============
 Released: 2017-03-25
