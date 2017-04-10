@@ -49,8 +49,8 @@ PASSPHRASE="passphrase"
 # The maxinum number of passphrase retry
 MAX_PASSPHRASE_RETRY_COUNT=3
 
-# The timeout (second) for the rootfs device got ready
-MAX_TIMEOUT_FOR_WAITING_RAWDEV=30
+# The timeout (tenth of a second) for the rootfs device got ready
+MAX_TIMEOUT_FOR_WAITING_RAWDEV=60
 
 #
 # Global variable settings
