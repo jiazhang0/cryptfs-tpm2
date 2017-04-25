@@ -126,7 +126,12 @@ function get_dev_partuuid
 
 function get_dev_label
 {
-    blkid -t LABEL=$1 -l | awk -F: '{print $1}'
+    rawdev=`blkid -t LABEL=$1 -l | awk -F: '{print $1}'`
+    # Also try the partition label for the same name if not found
+    if [ "$rawdev" == "" ] ; then
+	rawdev=`blkid -t PARTLABEL=$1 -l | awk -F: '{print $1}'`
+    fi
+    echo $rawdev
 }
 
 function get_dev_rawdev
@@ -257,15 +262,16 @@ function open_luks_part_with_encrypted_passphrase
 {
     local luks_rawdev="$1"
 
-    (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
-
     while [ 1 ]; do
         # Unseal the passphrase
         cryptfs-tpm2 -q unseal passphrase -P auto -o "$TMP_DIR/$PASSPHRASE" 2>/dev/null
         local res=$?
 
         # Error code 200 indicates resourcemgr is not ready
-        [ $res -eq 200 ] && continue
+        if [ $res -eq 200 ] ; then
+	    sleep 0.1
+	    continue
+	fi
         [ $res -eq 0 ] && break
 
         print_error "Unable to unseal the passphrase with the error $res" && return 1
@@ -308,6 +314,8 @@ function map_luks
 {
     local luks_rawdev="$1"
     local tpm_absent=$2
+
+    (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
 
     print_verbose "Attempting to mount the LUKS partition $luks_rawdev ..."
 
@@ -372,7 +380,7 @@ trap "trap_handler $?" SIGINT EXIT
 
 # Detect the present of LUKS partition.
 
-luks_rawdev_pathes="$(blkid -o list | grep crypto_LUKS | awk '{ print $1 }')"
+luks_rawdev_pathes="$(blkid -s TYPE | grep crypto_LUKS | awk -F: '{ print $1 }')"
 [ -z "$luks_rawdev_pathes" ] && print_info "No LUKS partition detected" && exit 1
 
 ! parse_rootfs_dev_path rootfs_dev_path_type rootfs_dev_path_name && exit 1
