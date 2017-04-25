@@ -37,8 +37,12 @@
 
 VERSION="0.1.0"
 
-DEFAULT_ENCRYPTION_NAME="luks_part"
+# If the luks-setup.sh is called to map a drive before the boot is completed
+# manage the resourcemgr here as needed
+RESOURCEMGR_STARTED=0
+DEFAULT_ENCRYPTION_NAME="${DEFAULT_ENCRYPTION_NAME:-luks_part}"
 TPM_ABSENT=1
+TEMP_DIR=""
 
 function print_critical()
 {
@@ -81,7 +85,8 @@ function print_verbose()
 function trap_handler()
 {
     print_verbose "Cleaning up ..."
-    rm -rf "$TEMP_DIR"
+    [ $RESOURCEMGR_STARTED -eq 1 ] && pkill resourcemgr
+    [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
 }
 
 function detect_tpm()
@@ -104,6 +109,24 @@ function detect_tpm()
     [ $tpm_absent -eq 1 ] && print_info "No TPM device found" && return 1
 
     print_info "TPM device /dev/$dev detected"
+
+    return 0
+}
+
+function unseal_passphrase()
+{
+    local passphrase=$1
+
+    if ! pgrep resourcemgr > /dev/null; then
+        (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
+        RESOURCEMGR_STARTED=1
+        sleep 0.1
+    fi
+
+    ! cryptfs-tpm2 -q unseal passphrase -P auto -o "$passphrase" &&
+        print_error "Unable to unseal the passphrase" && return 1
+
+    [ $RESOURCEMGR_STARTED -eq 1 ] && pkill resourcemgr
 
     return 0
 }
@@ -187,6 +210,9 @@ Options:
      Set the path to the device node where the LUKS partition is manipulated.
      e.g, /dev/sda1
 
+ -N|--no-setup
+     In no setup mode you can map/unmap existing LUKS partitions.
+
  -n|--name <mapped name>
     (Optional) Set the mapped name for the dmcrypt target device.
     e.g. /dev/mapper/<mapped name>.
@@ -195,6 +221,9 @@ Options:
 
  -f|--force
     (Optional) Enforce creating the LUKS partition if already existed.
+
+ -m|--map-existing
+    (Optional) Map previously created LUKS partition.
 
  -u|--unmap
     (Optional) Unmap the created LUKS partition before exiting.
@@ -225,6 +254,8 @@ OPT_UNMAP_LUKS=0
 OPT_NO_TPM=0
 OPT_EVICT_ALL=0
 OPT_VERBOSE=0
+OPT_MAP_EXISTING_LUKS=0
+OPT_NO_SETUP=0
 
 while [ $# -gt 0 ]; do
     opt=$1
@@ -232,9 +263,15 @@ while [ $# -gt 0 ]; do
         -d|--dev)
             shift && option_check $1 && OPT_LUKS_DEV="$1"
             ;;
+	-N|--no-setup)
+            OPT_NO_SETUP=1
+            ;;
 	-n|--name)
 	    shift && option_check $1 && OPT_LUKS_NAME="$1"
 	    ;;
+	-m|--map-existing)
+            OPT_MAP_EXISTING_LUKS=1
+            ;;
 	-f|--force)
 	    OPT_FORCE_CREATION=1
 	    ;;
@@ -266,9 +303,47 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+trap "trap_handler $?" SIGINT EXIT
+
+OPT_LUKS_NAME="${OPT_LUKS_NAME:-$DEFAULT_ENCRYPTION_NAME}"
+
+###### OPT_NO_SETUP Handling start ######
+if [ $OPT_NO_SETUP -eq 1 ] && [ $OPT_UNMAP_LUKS -eq 1 ] ; then
+    unmap_luks_partition "$OPT_LUKS_NAME"
+    exit 0
+fi
+
 [ x"$OPT_LUKS_DEV" = x"" ] && print_error "LUKS device is not specified" &&
     exit 1
 
+TEMP_DIR=`mktemp -d /tmp/luks-setup.XXXXXX`
+print_verbose "Temporary directory created: $TEMP_DIR"
+[ ! -d "$TEMP_DIR" ] && print_error "Failed to create the temporary directory" &&
+    exit 1
+
+if [ $OPT_NO_SETUP -eq 1 ] ; then
+    if [ $OPT_MAP_EXISTING_LUKS -eq 1 ]; then
+	if ! is_luks_partition "$OPT_LUKS_DEV"; then
+            print_info "$OPT_LUKS_DEV is not a LUKS partition"
+            exit 1
+	fi
+
+	! unseal_passphrase "$TEMP_DIR/passphrase" && exit 1
+
+	if [ $OPT_NO_TPM -eq 0 ] ; then
+	    detect_tpm
+	    [ $? -eq 0 ] && TPM_ABSENT=0
+	fi
+
+	! map_luks_partition "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" \
+            "$TPM_ABSENT" "$TEMP_DIR" && exit 1
+
+	print_info "The LUKS partition $OPT_LUKS_NAME is created on $OPT_LUKS_DEV"
+    fi
+    exit 0
+fi
+
+###### OPT_NO_SETUP Handling end ######
 if is_luks_partition "$OPT_LUKS_DEV"; then
     print_info "$OPT_LUKS_DEV is already a LUKS partition"
     [ $OPT_FORCE_CREATION -eq 0 ] && exit 0
@@ -293,15 +368,6 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 else
     print_info "Installation confirmed"
 fi
-
-OPT_LUKS_NAME="${OPT_LUKS_NAME:-$DEFAULT_ENCRYPTION_NAME}"
-
-TEMP_DIR=`mktemp -d /tmp/luks-setup.XXXXXX`
-print_verbose "Temporary directory created: $TEMP_DIR"
-[ ! -d "$TEMP_DIR" ] && print_error "Failed to create the temporary directory" &&
-    exit 1
-
-trap "trap_handler $?" SIGINT EXIT
 
 if [ $OPT_NO_TPM -eq 0 ]; then
     detect_tpm
