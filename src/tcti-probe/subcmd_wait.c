@@ -31,23 +31,23 @@
 
 #include <cryptfs_tpm2.h>
 
-#define DEFAULT_DELAY_SECOND		1UL
-#define DEFAULT_TIMEOUT_SECOND		5UL
+#define DEFAULT_DELAY_MSEC		100UL
+#define DEFAULT_TIMEOUT_MSEC		5000UL
 
-static unsigned long opt_delay = DEFAULT_DELAY_SECOND;
-static unsigned long opt_timeout = DEFAULT_TIMEOUT_SECOND;
+static unsigned long opt_delay_ms = DEFAULT_DELAY_MSEC;
+static unsigned long opt_timeout_ms = DEFAULT_TIMEOUT_MSEC;
 
 static void
 show_usage(char *prog)
 {
 	info_cont("\nUsage: %s wait <args>\n", prog);
 	info_cont("\nargs:\n");
-	info_cont("  --delay, -d: (optional) The delay (in second) "
+	info_cont("  --delay, -d: (optional) The delay (in millisecond) "
 		  "before attempting to connecting resourcemgr. "
-		  "Default: %ld\n", DEFAULT_DELAY_SECOND);
-	info_cont("  --timeout, -t: (optional) The timeout (in second) "
+		  "Default: %ld\n", DEFAULT_DELAY_MSEC);
+	info_cont("  --timeout, -t: (optional) The timeout (in millisecond) "
 		  "upon awaiting resourcemgr. 0 indicates infinite wait. "
-		  "Default: %ld\n", DEFAULT_TIMEOUT_SECOND);
+		  "Default: %ld\n", DEFAULT_TIMEOUT_MSEC);
 }
 
 static int
@@ -55,24 +55,62 @@ parse_arg(int opt, char *optarg)
 {
 	switch (opt) {
 	case 'd':
-		opt_delay = strtoul(optarg, NULL, 0);
+		opt_delay_ms = strtoul(optarg, NULL, 0);
                 break;
 	case 't':
-		opt_timeout = strtoul(optarg, NULL, 0);
+		opt_timeout_ms = strtoul(optarg, NULL, 0);
                 break;
 	default:
+		return -1;
+	}
+
+	if (!opt_delay_ms) {
+		err("Invalid setting of -d option\n");
 		return -1;
 	}
 
 	return 0;
 }
 
+static void
+accurate_delay_begin(void)
+{
+	struct sched_param param;
+	int policy = SCHED_RR;
+
+	param.sched_priority = sched_get_priority_max(policy);
+	sched_setscheduler(0, policy, &param);
+}
+
+static void
+accurate_delay(unsigned long delay_ms)
+{
+	struct timespec req;
+
+	req.tv_sec = delay_ms / 1000;
+	delay_ms %= 1000;
+	req.tv_nsec = delay_ms * 1000000;
+
+	while (1) {
+		struct timespec rem;
+		int err;
+
+		err = nanosleep(&req, &rem);
+		if (!err || errno != EINTR)
+			break;
+
+		req = rem;
+	}
+}
+
 static int
 run_wait(char *prog)
 {
 	TSS2_TCTI_CONTEXT *context = NULL;
-	unsigned long total_delay = 0;
+	unsigned long total_delay_ms = 0;
 	int ret = EXIT_SUCCESS;
+
+	accurate_delay_begin();
 
 	while (1) {
 		context = cryptfs_tpm2_util_init_tcti_context();
@@ -81,13 +119,16 @@ run_wait(char *prog)
 			break;
 		}
 
-		sleep(opt_delay);
-		total_delay += opt_delay;
+		if (total_delay_ms + opt_delay_ms > opt_timeout_ms &&
+		    opt_timeout_ms)
+			opt_delay_ms = opt_timeout_ms - total_delay_ms;
+		accurate_delay(opt_delay_ms);
+		total_delay_ms += opt_delay_ms;
 
-		info("Already waited for resourcemgr %ld seconds\n",
-		     total_delay);
+		dbg("Already waited for resourcemgr %ld millisecond\n",
+		    total_delay_ms);
 
-		if (opt_timeout && total_delay >= opt_timeout) {
+		if (total_delay_ms >= opt_timeout_ms && opt_timeout_ms) {
 			info("Timeout upon awaiting resourcemgr\n");
 			ret = EXIT_FAILURE;
 			break;
