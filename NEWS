@@ -1,3 +1,11 @@
+Version 0.5.2
+=============
+Released: 2017-04-26
+
+- Add new tool tcti-probe used to await resourcemgr
+- Add support for mapping/unmapping crypto disks
+- Improve mounting reliability
+
 Version 0.5.1
 =============
 Released: 2017-04-09
