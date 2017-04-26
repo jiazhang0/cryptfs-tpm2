@@ -1,6 +1,6 @@
 include $(TOPDIR)/version.mk
 
-SUBDIRS := lib cryptfs-tpm2
+SUBDIRS := lib cryptfs-tpm2 tcti-util
 
 .DEFAULT_GOAL := all
 .PHONE: all clean install
