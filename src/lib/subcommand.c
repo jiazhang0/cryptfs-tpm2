@@ -72,7 +72,6 @@ int
 subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 {
 	subcommand_t *cmd;
-	int subcmd_arg_parsed;
 
 	dbg("Input subcommand: %s\n", subcmd);
 
@@ -81,8 +80,6 @@ subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 		err("Unrecognized subcommand: %s\n", subcmd);
 		return -1;
 	}
-
-	subcmd_arg_parsed = 0;
 
 	while (1) {
 		int opt;
@@ -97,23 +94,12 @@ subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 			err("Unrecongnized argument\n");
 			return -1;
 		default:	/* Command arguments */
-			subcmd_arg_parsed = 1;
 			if (cmd->parse_arg(opt, optarg)) {
 				if (strcmp(subcmd, "help"))
 					cmd->show_usage(prog);
 				return -1;
 			}
 		}
-	}
-
-	if (!subcmd_arg_parsed) {
-		err("Nothing specified\n");
-		if (strcmp(cmd->name, "help"))
-			err(". Run \"%s help %s \" for the help info\n",
-			    prog, subcmd);
-		else
-			err_cont("\n");
-		return -1;
 	}
 
 	curr_subcommand = cmd;
