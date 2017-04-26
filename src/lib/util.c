@@ -258,9 +258,7 @@ cryptfs_tpm2_util_init_tcti_context(void)
 	}
 
 	tcti_context = (TSS2_TCTI_CONTEXT *)malloc(size);
-	if(!tcti_context)
-		rc = TSS2_TCTI_RC_BAD_CONTEXT;
-	else {
+	if (tcti_context) {
 		rc = InitSocketTcti(tcti_context, &size, &cfg, 0);
 		if (rc != TSS2_RC_SUCCESS) {
 			err("Unable to initialize tcti context\n");
