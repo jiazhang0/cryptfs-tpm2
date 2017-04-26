@@ -10,7 +10,7 @@ OBJS_$(BIN_NAME) := \
 
 all: $(BIN_NAME) Makefile
 
-$(BIN_NAME): $(OBJS_$(BIN_NAME)) $(TOPDIR)/src/lib/$(LIB_NAME).so
+$(BIN_NAME): $(OBJS_$(BIN_NAME)) $(TOPDIR)/src/lib/$(LIB_NAME).a
 	$(CC) $^ -o $@ $(CFLAGS)
 
 clean:
