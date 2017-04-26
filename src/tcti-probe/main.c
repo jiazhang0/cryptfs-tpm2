@@ -123,7 +123,7 @@ static void
 exit_notify(void)
 {
 	if (cryptfs_tpm2_util_verbose())
-		info("tcti-util exiting with %d (%s)\n", errno,
+		info("tcti-probe exiting with %d (%s)\n", errno,
 		     strerror(errno));
 }
 

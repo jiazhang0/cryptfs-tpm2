@@ -1,7 +1,7 @@
 include $(TOPDIR)/env.mk
 include $(TOPDIR)/rules.mk
 
-BIN_NAME := tcti-util
+BIN_NAME := tcti-probe
 
 OBJS_$(BIN_NAME) := \
 		    main.o \

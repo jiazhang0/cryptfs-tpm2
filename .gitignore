@@ -1,5 +1,5 @@
 src/cryptfs-tpm2/cryptfs-tpm2
-src/tcti-util/tcti-util
+src/tcti-probe/tcti-probe
 *.o
 *.so
 *.a
