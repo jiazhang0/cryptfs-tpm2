@@ -182,6 +182,12 @@ extern int
 cryptfs_tpm2_util_save_output_file(const char *file_path, uint8_t *buf,
 				   unsigned long size);
 
+extern TSS2_TCTI_CONTEXT *
+cryptfs_tpm2_util_init_tcti_context(void);
+
+extern void
+cryptfs_tpm2_util_teardown_tcti_context(TSS2_TCTI_CONTEXT *tcti_context);
+
 extern int
 cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size);
 

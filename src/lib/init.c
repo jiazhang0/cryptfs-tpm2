@@ -38,45 +38,6 @@ TSS2_SYS_CONTEXT *cryptfs_tpm2_sys_context;
 static TSS2_TCTI_CONTEXT *tcti_context;
 
 static TSS2_RC
-init_tcti_context(void)
-{
-	TCTI_SOCKET_CONF cfg = {
-		DEFAULT_HOSTNAME,
-		DEFAULT_RESMGR_TPM_PORT
-	};
-	size_t size;
-	TSS2_RC rc;
-
-	rc = InitSocketTcti(NULL, &size, &cfg, 0);
-	if (rc != TSS2_RC_SUCCESS) {
-		err("Unable to get the size of tcti context\n");
-		return rc;
-	}
-
-	tcti_context = (TSS2_TCTI_CONTEXT *)malloc(size);
-	if(!tcti_context)
-		rc = TSS2_TCTI_RC_BAD_CONTEXT;
-	else {
-        	rc = InitSocketTcti(tcti_context, &size, &cfg, 0);
-		if (rc != TSS2_RC_SUCCESS) {
-			err("Unable to initialize tcti context\n");
-			free(tcti_context);
-			tcti_context = NULL;
-		}
-	}
-
-	return rc;
-}
-
-static void
-teardown_tcti_context(void)
-{
-	tss2_tcti_finalize(tcti_context);
-	free(tcti_context);
-	tcti_context = NULL;
-}
-
-static TSS2_RC
 init_sys_context(void)
 {
 	TSS2_ABI_VERSION tss2_abi_version = {
@@ -123,11 +84,9 @@ teardown_sys_context(void)
 void __attribute__ ((constructor))
 libcryptfs_tpm2_init(void)
 {
-	TSS2_RC rc;
-
-	rc = init_tcti_context();
-	if (rc != TSS2_RC_SUCCESS)
-		exit(200);
+	tcti_context = cryptfs_tpm2_util_init_tcti_context();
+	if (!tcti_context)
+		exit(1);
 
 	init_sys_context();
 }
@@ -136,5 +95,6 @@ void __attribute__((destructor))
 libcryptfs_tpm2_fini(void)
 {
 	teardown_sys_context();
-	teardown_tcti_context();
+	cryptfs_tpm2_util_teardown_tcti_context(tcti_context);
+	tcti_context = NULL;
 }
