@@ -148,7 +148,7 @@
 	} while (0)
 
 #define err_cont(fmt, ...)	\
-	fprintf(stdout, fmt, ##__VA_ARGS__)
+	fprintf(stderr, fmt, ##__VA_ARGS__)
 
 extern const char *cryptfs_tpm2_git_commit;
 extern const char *cryptfs_tpm2_build_machine;
