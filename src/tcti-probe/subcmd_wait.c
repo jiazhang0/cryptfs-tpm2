@@ -129,7 +129,7 @@ run_wait(char *prog)
 		    total_delay_ms);
 
 		if (total_delay_ms >= opt_timeout_ms && opt_timeout_ms) {
-			info("Timeout upon awaiting resourcemgr\n");
+			err("Timeout upon awaiting resourcemgr\n");
 			ret = EXIT_FAILURE;
 			break;
 		}
