@@ -72,6 +72,7 @@ run_wait(char *prog)
 {
 	TSS2_TCTI_CONTEXT *context = NULL;
 	unsigned long total_delay = 0;
+	int ret = EXIT_SUCCESS;
 
 	while (1) {
 		context = cryptfs_tpm2_util_init_tcti_context();
@@ -88,6 +89,7 @@ run_wait(char *prog)
 
 		if (opt_timeout && total_delay >= opt_timeout) {
 			info("Timeout upon awaiting resourcemgr\n");
+			ret = EXIT_FAILURE;
 			break;
 		}
 	}
@@ -95,7 +97,7 @@ run_wait(char *prog)
 	if (context)
 		cryptfs_tpm2_util_teardown_tcti_context(context);
 
-	return 0;
+	return ret;
 }
 
 static struct option long_opts[] = {
