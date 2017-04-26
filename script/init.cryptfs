@@ -269,9 +269,9 @@ function open_luks_part_with_encrypted_passphrase
 
         # Error code 200 indicates resourcemgr is not ready
         if [ $res -eq 200 ] ; then
-	    sleep 0.1
-	    continue
-	fi
+            sleep 0.1
+            continue
+        fi
         [ $res -eq 0 ] && break
 
         print_error "Unable to unseal the passphrase with the error $res" && return 1
@@ -315,18 +315,18 @@ function map_luks
     local luks_rawdev="$1"
     local tpm_absent=$2
 
-    (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
-
     print_verbose "Attempting to mount the LUKS partition $luks_rawdev ..."
 
     local err=1
     if [ $tpm_absent -eq 0 ]; then
+        (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
+
         open_luks_part_with_encrypted_passphrase "$luks_rawdev"
         err=$?
-    fi
 
-    rm -f "$TMP_DIR/$PASSPHRASE"
-    pkill -9 resourcemgr
+        rm -f "$TMP_DIR/$PASSPHRASE"
+        pkill -9 resourcemgr
+    fi
 
     if [ $err -eq 1 ]; then
         print_verbose "Attempting to prompt with inputing passphrase ..."
