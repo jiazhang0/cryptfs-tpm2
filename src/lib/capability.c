@@ -238,7 +238,7 @@ cryptfs_tpm2_capability_digest_algorithm_supported(TPMI_ALG_HASH *hash_alg)
 	UINT32 rc;
 
 	rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
-				    TPM_CAP_ALGS, 0, 1, &more_data,
+				    TPM_CAP_ALGS, TPM_PT_NONE, 1, &more_data,
 				    &capability_data, NULL);
 	if (rc != TPM_RC_SUCCESS) {
 		err("Unable to get the TPM supported algorithms (%#x)", rc);
@@ -297,7 +297,7 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 	UINT32 rc;
 
 	rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
-				    TPM_CAP_PCRS, 0, 1, &more_data,
+				    TPM_CAP_PCRS, TPM_PT_NONE, 1, &more_data,
 				    &capability_data, NULL);
 	if (rc != TPM_RC_SUCCESS) {
 		err("Unable to get the TPM PCR banks (%#x)", rc);
