@@ -116,15 +116,21 @@ function detect_tpm()
 function unseal_passphrase()
 {
     local passphrase=$1
+    local err=0
 
     if ! pgrep resourcemgr > /dev/null; then
         (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
         RESOURCEMGR_STARTED=1
-        sleep 0.1
+        tcti-probe -q wait -d 100 -t 3 2>/dev/null
+        err=$?
     fi
 
-    ! cryptfs-tpm2 -q unseal passphrase -P auto -o "$passphrase" &&
-        print_error "Unable to unseal the passphrase" && return 1
+    if [ $err -eq 0 ]; then
+        ! cryptfs-tpm2 -q unseal passphrase -P auto -o "$passphrase" &&
+	    print_error "Unable to unseal the passphrase" && return 1
+    else
+	print_error "Unable to contact resourcemgr" && return 1
+    fi
 
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill resourcemgr
 
@@ -316,7 +322,7 @@ fi
 [ x"$OPT_LUKS_DEV" = x"" ] && print_error "LUKS device is not specified" &&
     exit 1
 
-TEMP_DIR=`mktemp -d /tmp/luks-setup.XXXXXX`
+TEMP_DIR=`mktemp -d /dev/luks-setup.XXXXXX`
 print_verbose "Temporary directory created: $TEMP_DIR"
 [ ! -d "$TEMP_DIR" ] && print_error "Failed to create the temporary directory" &&
     exit 1

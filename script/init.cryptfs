@@ -315,6 +315,7 @@ function map_luks
 
     print_verbose "Attempting to mount the LUKS partition $luks_rawdev ..."
 
+    local try_once=1
     local err=1
     if [ $tpm_absent -eq 0 ]; then
         (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
@@ -325,8 +326,16 @@ function map_luks
         err=$?
 
         if [ $err -eq 0 ]; then
-            open_luks_part_with_encrypted_passphrase "$luks_rawdev"
-            err=$?
+	    while [ 1 ] ; do
+		open_luks_part_with_encrypted_passphrase "$luks_rawdev"
+		err=$?
+		if [ $err -ne 0 -a $try_once -eq 1 ] ; then
+		    tpm2_dictionarylockout -c
+		    try_once=0
+		    continue
+		fi
+		break
+	    done
         fi
 
         rm -f "$TMP_DIR/$PASSPHRASE"
