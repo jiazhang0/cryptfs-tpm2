@@ -121,7 +121,7 @@ function unseal_passphrase()
     if ! pgrep resourcemgr > /dev/null; then
         (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
         RESOURCEMGR_STARTED=1
-        tcti-probe -q wait -d 100 -t 3 2>/dev/null
+        tcti-probe -q wait -d 100 -t 3000 2>/dev/null
         err=$?
     fi
 
