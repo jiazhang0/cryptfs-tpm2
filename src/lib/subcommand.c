@@ -92,17 +92,16 @@ subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 		if (opt == -1)
 			break;
 
-		dbg("subcmd %s, optind %d, argc %d, argv[i] %s, optarg %s\n",
-		    subcmd, optind, argc, argv[optind - 1], optarg);
+		dbg("opt 0x%x, optind %d, argc %d, argv[i] %s, optarg %s\n",
+		    opt, optind, argc, argv[optind - 1], optarg);
 
 		switch (opt) {
-		case 1:
+		default:
 			if (cmd->parse_arg(opt, optarg))
 				return -1;
 			break;
 		case '?':
 		case ':':
-		default:
 			cmd->show_usage(prog);
 			return -1;
 		}
