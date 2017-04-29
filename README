@@ -51,8 +51,8 @@ Clear TPM 2.0 device through setting the security jumper on the board or
 running tpm2_takeownership -c. The latter is provided by tpm2.0-tools.
 
 Note: cryptfs-tpm2 will create the primary key and passphrase in the owner
-hierarchy and so always specify -a or --auth option with cryptfs-tpm2 to
-set the authorization value for accessing owner hierarchy if required.
+hierarchy and so always specify --owner-auth option to set the authorization
+value for accessing owner hierarchy if required.
 
 - Create the primary key and passphrase
 The typical method is to create the primary key and passphrase by TPM 2.0.
@@ -111,5 +111,6 @@ https://github.com/01org/TPM2.0-TSS
 tpm2.0-tools - The TPM 2.0 tools
 https://github.com/01org/tpm2.0-tools
 
-meta-secure-env - a practical full-disk-encryption implementation based on Pulsar Linux
+meta-secure-env - A practical full-disk-encryption implementation with TPM 2.0
+                  based on Pulsar Linux
 https://github.com/WindRiver-OpenSourceLabs/meta-secure-env

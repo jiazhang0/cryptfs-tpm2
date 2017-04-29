@@ -33,7 +33,6 @@
 
 static bool opt_unseal_passphrase;
 static char *opt_output_file;
-static char *opt_lockout_auth;
 static TPMI_ALG_HASH opt_pcr_bank_alg = TPM_ALG_NULL;
 
 static void
@@ -62,15 +61,6 @@ parse_arg(int opt, char *optarg)
 			return -1;
 		}
                 break;
-	case 'l':
-		if (strlen(optarg) > sizeof(TPMU_HA)) {
-			err("The authorization value for lockout is "
-			    "no more than %d characters\n",
-			    (int)sizeof(TPMU_HA));
-			return -1;
-		}
-		opt_lockout_auth = optarg;
-		break;
 	case 'o':
 		opt_output_file = optarg;
 		break;
@@ -109,9 +99,6 @@ static int
 run_unseal(char *prog)
 {
 	int rc = 0;
-
-	if (opt_lockout_auth)
-		cryptfs_tpm2_da_set_lockout_auth(opt_lockout_auth);
 
 	if (opt_unseal_passphrase) {
 		unsigned char *passphrase;

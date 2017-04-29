@@ -7,11 +7,12 @@ LIB_TARGETS := $(LIB_NAME).so $(LIB_NAME).a
 
 OBJS_$(LIB_NAME) = \
 		   init.o \
+		   option.o \
+		   subcommand.o \
+		   util.o \
 		   build_info.o \
 		   secret_area.o \
 		   secret.o \
-		   subcommand.o \
-		   util.o \
 		   session.o \
 		   evict.o \
 		   random.o \

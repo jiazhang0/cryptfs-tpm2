@@ -155,6 +155,9 @@
 
 extern const char *cryptfs_tpm2_git_commit;
 extern const char *cryptfs_tpm2_build_machine;
+extern int option_quite;
+extern char *option_owner_auth;
+extern char *option_lockout_auth;
 
 #define TPM_ALG_AUTO		0x4000
 
@@ -240,8 +243,5 @@ cryptfs_tpm2_capability_lockout_auth_required(bool *required);
 int
 cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
 		      BYTE *out);
-
-void
-cryptfs_tpm2_da_set_lockout_auth(const char *lockout_auth);
 
 #endif	/* CRYPTFS_TPM2_H */

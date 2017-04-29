@@ -1,7 +1,7 @@
 /*
  * BSD 2-clause "Simplified" License
  *
- * Copyright (c) 2017, Lans Zhang <jia.zhang@windriver.com>, Wind River Systems, Inc.
+ * Copyright (c) 2016-2017, Lans Zhang <jia.zhang@windriver.com>, Wind River Systems, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,79 +29,6 @@
  * 	Lans Zhang <jia.zhang@windriver.com>
  */
 
-#include <cryptfs_tpm2.h>
-
-#include "internal.h"
-
-static void
-prompt_lockout_auth(char **lockout_auth)
-{
-
-}
-
-static int
-clear_lockout(const char *lockout_auth)
-{
-	unsigned int lockout_auth_size;
-
-	if (!lockout_auth)
-		lockout_auth_size = 0;
-	else
-		lockout_auth_size = strlen(lockout_auth);
-
-	struct session_complex s;
-
-	password_session_create(&s, (char *)lockout_auth, lockout_auth_size);
-
-	UINT32 rc;
-
-	rc = Tss2_Sys_DictionaryAttackLockReset(cryptfs_tpm2_sys_context,
-						TPM_RH_LOCKOUT,
-						&s.sessionsData,
-						&s.sessionsDataOut);
-        if (rc != TPM_RC_SUCCESS) {
-		err("Unable to reset DA lockout (err: 0x%x)\n", rc);
-		return EXIT_FAILURE;
-	}
-
-        return EXIT_SUCCESS;
-}
-
-int
-da_reset(void)
-{
-	bool required;
-	int rc;
-
-	rc = cryptfs_tpm2_capability_lockout_auth_required(&required);
-	if (rc == EXIT_SUCCESS) {
-		clear_lockout(NULL);
-		return EXIT_SUCCESS;
-	}
-
-	int retry = 0;
-
-	while (retry++ < CRYPTFS_TPM2_MAX_LOCKOUT_RETRY) {
-		rc = clear_lockout(option_lockout_auth);
-
-		if (rc == EXIT_SUCCESS)
-			break;
-
-		prompt_lockout_auth(&option_lockout_auth);
-	}
-
-	return rc;
-}
-
-int
-da_check_and_reset(void)
-{
-	bool in_lockout;
-	int rc;
-
-	rc = cryptfs_tpm2_capability_in_lockout(&in_lockout);
-	if (rc == EXIT_SUCCESS && in_lockout == true)
-		rc = da_reset();
-
-	return rc;
-}
+int option_quite;
+char *option_owner_auth;
+char *option_lockout_auth;

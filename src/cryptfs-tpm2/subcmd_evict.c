@@ -31,8 +31,6 @@
 
 #include <cryptfs_tpm2.h>
 
-static char *opt_auth_password;
-static char *opt_lockout_auth;
 static bool opt_evict_key;
 static bool opt_evict_passphrase;
 
@@ -45,35 +43,12 @@ show_usage(char *prog)
 		  "    passphrase: Passphrase used to encrypt LUKS\n"
 		  "    key: Primary key used to seal the passphrase\n"
 		  "    all: All above\n");
-	info_cont("\nargs:\n");
-	info_cont("  --auth, -a: (optional) Set the authorization value for "
-		  "owner hierarchy.\n");
-	info_cont("  --lockoutauth, -l: (optional) Specify the authorization "
-		  "value for lockout.\n");
 }
 
 static int
 parse_arg(int opt, char *optarg)
 {
 	switch (opt) {
-	case 'a':
-		if (strlen(optarg) >= sizeof(TPMU_HA)) {
-			err("The authorization value for owner hierarchy is "
-			    "no more than %d characters\n",
-			    (int)sizeof(TPMU_HA) - 1);
-			return -1;
-		}
-		opt_auth_password = optarg;
-                break;
-	case 'l':
-		if (strlen(optarg) > sizeof(TPMU_HA)) {
-			err("The authorization value for lockout is "
-			    "no more than %d characters\n",
-			    (int)sizeof(TPMU_HA));
-			return -1;
-		}
-		opt_lockout_auth = optarg;
-		break;
 	case 1:
 		if (!strcasecmp(optarg, "key"))
 			opt_evict_key = 1;
@@ -100,18 +75,18 @@ run_evict(char *prog)
 	int rc = 0;
 
 	if (opt_evict_passphrase) {
-		rc = cryptfs_tpm2_evict_primary_key(opt_auth_password,
-						    opt_auth_password ?
-						    strlen(opt_auth_password) :
+		rc = cryptfs_tpm2_evict_primary_key(option_owner_auth,
+						    option_owner_auth ?
+						    strlen(option_owner_auth) :
 						    0);
 		if (!rc)
 			info("The persistent passphrase is evicted\n");
 	}
 
 	if (opt_evict_key) {
-		int rc1 = cryptfs_tpm2_evict_passphrase(opt_auth_password,
-							opt_auth_password ?
-							strlen(opt_auth_password) :
+		int rc1 = cryptfs_tpm2_evict_passphrase(option_owner_auth,
+							option_owner_auth ?
+							strlen(option_owner_auth) :
 							0);
 		if (!rc1)
 			info("The persistent primary key is evicted\n");
@@ -123,14 +98,12 @@ run_evict(char *prog)
 }
 
 static struct option long_opts[] = {
-	{ "auth", required_argument, NULL, 'a' },
-	{ "lockoutauth", optional_argument, NULL, 'l' },
 	{ 0 },	/* NULL terminated */
 };
 
 subcommand_t subcommand_evict = {
 	.name = "evict",
-	.optstring = "-a:l:",
+	.optstring = "-",
 	.long_opts = long_opts,
 	.parse_arg = parse_arg,
 	.show_usage = show_usage,

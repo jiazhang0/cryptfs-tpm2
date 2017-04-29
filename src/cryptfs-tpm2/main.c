@@ -31,8 +31,6 @@
 
 #include <cryptfs_tpm2.h>
 
-static int opt_quite;
-
 static void
 show_banner(void)
 {
@@ -59,16 +57,25 @@ show_usage(const char *prog)
 	info_cont("  --version, -V: Show version number\n");
 	info_cont("  --verbose, -v: Show verbose messages\n");
 	info_cont("  --quite, -q: Don't show banner information\n");
+	info_cont("  --owner-auth: Specify the authorization value "
+		  "for owner hierarchy.\n");
+	info_cont("  --lockout-auth: Specify the authorization value "
+		  "for lockout.\n");
 	info_cont("\nsubcommand:\n");
 	info_cont("  help: Display the help information for the "
 		  "specified command\n");
 	info_cont("  seal: Create the persistent primary key and seal the "
 		  "passphrase\n");
 	info_cont("  unseal: Unseal the passphrase\n");
-	info_cont("  evict: Evict the persistent primary key and passphrase\n");
+	info_cont("  evict: Evict the persistent primary key and "
+		  "passphrase\n");
 	info_cont("\nargs:\n");
 	info_cont("  Run `%s help <subcommand>` for the details\n", prog);
 }
+
+#define EXTRA_OPT_BASE			0x8000
+#define EXTRA_OPT_OWNER_AUTH		(EXTRA_OPT_BASE + 0)
+#define EXTRA_OPT_LOCKOUT_AUTH		(EXTRA_OPT_BASE + 1)
 
 static int
 parse_options(int argc, char *argv[])
@@ -79,6 +86,10 @@ parse_options(int argc, char *argv[])
 		{ "version", no_argument, NULL, 'V' },
 		{ "verbose", no_argument, NULL, 'v' },
 		{ "quite", no_argument, NULL, 'q' },
+		{ "owner-auth", required_argument, NULL,
+		  EXTRA_OPT_OWNER_AUTH },
+		{ "lockout-auth", required_argument, NULL,
+		  EXTRA_OPT_LOCKOUT_AUTH },
 		{ 0 },	/* NULL terminated */
 	};
 
@@ -90,9 +101,6 @@ parse_options(int argc, char *argv[])
 			break;
 
 		switch (opt) {
-		case '?':
-			err("Unrecognized option\n");
-			return -1;
 		case 'h':
 			show_usage(argv[0]);
 			exit(EXIT_SUCCESS);
@@ -103,7 +111,25 @@ parse_options(int argc, char *argv[])
 			cryptfs_tpm2_util_set_verbosity(1);
 			break;
 		case 'q':
-			opt_quite = 1;
+			option_quite = 1;
+			break;
+		case EXTRA_OPT_OWNER_AUTH:
+			if (strlen(optarg) >= sizeof(TPMU_HA)) {
+				err("The authorization value for owner hierarchy is "
+				    "no more than %d characters\n",
+				    (int)sizeof(TPMU_HA) - 1);
+				return -1;
+			}
+			option_owner_auth = strdup(optarg);
+	                break;
+		case EXTRA_OPT_LOCKOUT_AUTH:
+			if (strlen(optarg) > sizeof(TPMU_HA)) {
+				err("The authorization value for lockout is "
+				    "no more than %d characters\n",
+				    (int)sizeof(TPMU_HA));
+				return -1;
+			}
+			option_lockout_auth = strdup(optarg);
 			break;
 		case 1:
 			index = optind;
@@ -112,6 +138,8 @@ parse_options(int argc, char *argv[])
 					     argv + index - 1)) 
 				exit(EXIT_FAILURE);
 			return 0;
+		case '?':
+		case ':':
 		default:
 			show_usage(argv[0]);
 			return -1;
@@ -130,7 +158,8 @@ static void
 exit_notify(void)
 {
 	if (cryptfs_tpm2_util_verbose())
-		info("cryptfs-tpm2 exiting with %d (%s)\n", errno, strerror(errno));
+		info("cryptfs-tpm2 exiting with %d (%s)\n", errno,
+		     strerror(errno));
 }
 
 int
@@ -147,7 +176,7 @@ main(int argc, char *argv[], char *envp[])
 	if (rc)
 		return rc;
 
-	if (!opt_quite)
+	if (!option_quite)
 		show_banner();
 
 	return subcommand_run_current();
