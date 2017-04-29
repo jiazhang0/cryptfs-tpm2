@@ -81,6 +81,9 @@ subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 		return -1;
 	}
 
+	optind = 1;
+	opterr = 0;
+
 	while (1) {
 		int opt;
 
@@ -89,26 +92,23 @@ subcommand_parse(char *prog, char *subcmd, int argc, char *argv[])
 		if (opt == -1)
 			break;
 
+		dbg("subcmd %s, optind %d, argc %d, argv[i] %s, optarg %s\n",
+		    subcmd, optind, argc, argv[optind - 1], optarg);
+
 		switch (opt) {
-		case '?':
-			err("Unrecongnized argument\n");
-			return -1;
-		default:	/* Command arguments */
-			if (cmd->parse_arg(opt, optarg)) {
-				if (strcmp(subcmd, "help"))
-					cmd->show_usage(prog);
+		case 1:
+			if (cmd->parse_arg(opt, optarg))
 				return -1;
-			}
+			break;
+		case '?':
+		case ':':
+		default:
+			cmd->show_usage(prog);
+			return -1;
 		}
 	}
 
 	curr_subcommand = cmd;
-	if (!curr_subcommand) {
-		err(". Run \"%s help %s \" for the help info\n",
-		    prog, subcmd);
-		return -1;
-	}
-
 	prog_name = prog;
 
 	return 0;

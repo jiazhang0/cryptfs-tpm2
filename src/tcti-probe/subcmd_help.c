@@ -36,7 +36,9 @@ static char *opt_command;
 static void
 show_usage(char *prog)
 {
-	info_cont("\nNobody can help you this time :(\n");
+	info_cont("\nUsage: %s help <subcommand>\n", prog);
+	info_cont("\nsubcommand:\n");
+	info_cont("  The subcommand to be shown.\n");
 }
 
 static int
@@ -49,7 +51,7 @@ parse_arg(int opt, char *optarg)
 
 			cmd = subcommand_find(optarg);
 			if (!cmd) {
-				err("Unrecognized command argument "
+				err("Unrecognized subcommand argument "
 				    "\"%s\" specified\n", optarg);
 				return -1;
 			}
@@ -66,6 +68,11 @@ parse_arg(int opt, char *optarg)
 static int
 run_help(char *prog)
 {
+	if (!opt_command) {
+		show_usage(prog);
+		return -1;
+	}
+
 	subcommand_find(opt_command)->show_usage(prog);
 
 	return 0;

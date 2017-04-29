@@ -133,11 +133,9 @@ parse_options(int argc, char *argv[])
 			break;
 		case 1:
 			index = optind;
-			optind = 1;
-			if (subcommand_parse(argv[0], optarg, argc - index + 1,
-					     argv + index - 1)) 
-				exit(EXIT_FAILURE);
-			return 0;
+			return subcommand_parse(argv[0], optarg,
+						argc - index + 1,
+						argv + index - 1);
 		case '?':
 		case ':':
 		default:
