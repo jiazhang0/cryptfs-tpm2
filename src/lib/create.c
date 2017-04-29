@@ -111,6 +111,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 	inPublic->t.publicArea.objectAttributes.fixedTPM = 1;
 	inPublic->t.publicArea.objectAttributes.fixedParent = 1;
 	inPublic->t.publicArea.objectAttributes.sensitiveDataOrigin = !sensitive_size;
+	inPublic->t.publicArea.objectAttributes.noDA = !!option_no_da;
 	inPublic->t.publicArea.type = type;
 
 	if (use_policy)

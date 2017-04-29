@@ -158,6 +158,7 @@ extern const char *cryptfs_tpm2_build_machine;
 extern int option_quite;
 extern char *option_owner_auth;
 extern char *option_lockout_auth;
+extern bool option_no_da;
 
 #define TPM_ALG_AUTO		0x4000
 

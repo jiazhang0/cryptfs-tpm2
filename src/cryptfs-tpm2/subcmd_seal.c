@@ -39,7 +39,7 @@ static TPMI_ALG_HASH opt_pcr_bank_alg = TPM_ALG_NULL;
 static void
 show_usage(char *prog)
 {
-	info_cont("\nUsage: %s <options>  seal <object> <args>\n", prog);
+	info_cont("\nUsage: %s <options> seal <object> <args>\n", prog);
 	info_cont("\nobject:\n");
 	info_cont("  The object to be sealed. The allowed values are:\n"
 		  "  - passphrase: Passphrase used to encrypt LUKS\n"
@@ -53,7 +53,13 @@ show_usage(char *prog)
 		  "    (optional) Explicitly set the passphrase value\n"
 		  "    (32-byte at most) instead of the one generated\n"
 		  "    by TPM randomly.\n");
+	info_cont("  --no-da:\n"
+		  "    (optional) The authorization failure never cause\n"
+		  "    DA lockout\n");
 }
+
+#define EXTRA_OPT_BASE			0x8100
+#define EXTRA_OPT_NO_DA			(EXTRA_OPT_BASE + 0)
 
 static int
 parse_arg(int opt, char *optarg)
@@ -85,6 +91,9 @@ parse_arg(int opt, char *optarg)
 			return -1;
 		}
 
+		break;
+	case EXTRA_OPT_NO_DA:
+		option_no_da = true;
 		break;
 	case 1:
 		if (!strcasecmp(optarg, "key"))
@@ -151,6 +160,7 @@ run_seal(char *prog)
 static struct option long_opts[] = {
 	{ "passphrase", required_argument, NULL, 'p' },
 	{ "pcr-bank-alg", required_argument, NULL, 'P' },
+	{ "no-da", no_argument, NULL, EXTRA_OPT_NO_DA },
 	{ 0 },	/* NULL terminated */
 };
 

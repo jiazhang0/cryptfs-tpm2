@@ -29,6 +29,9 @@
  * 	Lans Zhang <jia.zhang@windriver.com>
  */
 
+#include <cryptfs_tpm2.h>
+
 int option_quite;
 char *option_owner_auth;
 char *option_lockout_auth;
+bool option_no_da = false;
