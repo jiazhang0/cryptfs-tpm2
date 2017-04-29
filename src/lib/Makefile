@@ -20,7 +20,8 @@ OBJS_$(LIB_NAME) = \
 		   policy.o \
 		   pcr.o \
 		   hash.o \
-		   capability.o
+		   capability.o \
+		   da.o
 
 CFLAGS += -fpic
 

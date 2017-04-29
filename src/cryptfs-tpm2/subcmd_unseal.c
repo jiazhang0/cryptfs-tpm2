@@ -33,6 +33,7 @@
 
 static bool opt_unseal_passphrase;
 static char *opt_output_file;
+static char *opt_lockout_auth;
 static TPMI_ALG_HASH opt_pcr_bank_alg = TPM_ALG_NULL;
 
 static void
@@ -45,6 +46,8 @@ show_usage(char *prog)
 	info_cont("\nargs:\n");
 	info_cont("  --pcr-bank-alg, -P: (optional) Use the specified PCR "
 		  "bank to bind the created primary key and passphrase.\n");
+	info_cont("  --lockoutauth, -l: (optional) Specify the authorization "
+		  "value for lockout.\n");
 }
 
 static int
@@ -59,6 +62,15 @@ parse_arg(int opt, char *optarg)
 			return -1;
 		}
                 break;
+	case 'l':
+		if (strlen(optarg) > sizeof(TPMU_HA)) {
+			err("The authorization value for lockout is "
+			    "no more than %d characters\n",
+			    (int)sizeof(TPMU_HA));
+			return -1;
+		}
+		opt_lockout_auth = optarg;
+		break;
 	case 'o':
 		opt_output_file = optarg;
 		break;
@@ -98,6 +110,9 @@ run_unseal(char *prog)
 {
 	int rc = 0;
 
+	if (opt_lockout_auth)
+		cryptfs_tpm2_da_set_lockout_auth(opt_lockout_auth);
+
 	if (opt_unseal_passphrase) {
 		unsigned char *passphrase;
 		size_t passphrase_size;
@@ -127,12 +142,13 @@ run_unseal(char *prog)
 static struct option long_opts[] = {
 	{ "output", required_argument, NULL, 'o' },
 	{ "pcr-bank-alg", required_argument, NULL, 'P' },
+	{ "lockoutauth", optional_argument, NULL, 'l' },
 	{ 0 },	/* NULL terminated */
 };
 
 subcommand_t subcommand_unseal = {
 	.name = "unseal",
-	.optstring = "-o:P:",
+	.optstring = "-o:P:l:",
 	.long_opts = long_opts,
 	.parse_arg = parse_arg,
 	.show_usage = show_usage,

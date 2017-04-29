@@ -88,4 +88,10 @@ get_primary_key_secret(char *out, unsigned int *out_size);
 const char *
 get_passphrase_secret(char *out, unsigned int *out_size);
 
+int
+da_check_and_reset(void);
+
+int
+da_reset(void);
+
 #endif	/* __INTERNAL_H__ */

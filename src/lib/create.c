@@ -226,16 +226,21 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 	TPM2B_DIGEST creation_hash = { { sizeof(TPM2B_DIGEST) - 2, } };
 	TPMT_TK_CREATION creation_ticket = { 0, };
 	TPM_HANDLE obj_handle;
+	UINT32 rc;
 
-	UINT32 rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context,
-					   TPM_RH_OWNER, &s.sessionsData,
-					   &in_sensitive, &in_public,
-					   &outside_info, &creation_pcrs,
-					   &obj_handle, &out_public,
-					   &creation_data, &creation_hash,
-					   &creation_ticket, &out_name,
-					   &s.sessionsDataOut);
+again:
+	rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context,
+				    TPM_RH_OWNER, &s.sessionsData,
+				    &in_sensitive, &in_public,
+				    &outside_info, &creation_pcrs,
+				    &obj_handle, &out_public,
+				    &creation_data, &creation_hash,
+				    &creation_ticket, &out_name,
+				    &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
+		if (rc == TPM_RC_LOCKOUT && da_reset() == EXIT_SUCCESS)
+			goto again;
+
         	err("Unable to create and load the primary key "
 		    "(%#x)\n", rc);
 		return -1;
@@ -343,6 +348,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	TPM2B_PUBLIC out_public = { { 0, } };
 	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE) - 2, } };
 
+again:
 	rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context,
 			     CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
 			     &s.sessionsData, &in_sensitive, &in_public,
@@ -351,6 +357,9 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 			     &creation_hash, &creation_ticket,
 			     &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
+		if (rc == TPM_RC_LOCKOUT && da_reset() == EXIT_SUCCESS)
+			goto again;
+
         	err("Unable to create the passphrase object (%#x)\n", rc);
 		return -1;
 	}

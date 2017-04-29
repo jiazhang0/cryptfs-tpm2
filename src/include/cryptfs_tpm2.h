@@ -96,6 +96,9 @@
 /* The persiste handle value for the passphrase */
 #define CRYPTFS_TPM2_PASSPHRASE_HANDLE		0x817FFFFE
 
+/* The maximum atempts of prompting to type the lockout auth */
+#define CRYPTFS_TPM2_MAX_LOCKOUT_RETRY		3
+
 #define gettid()		syscall(__NR_gettid)
 
 #define __pr__(level, io, fmt, ...)	\
@@ -229,7 +232,16 @@ bool
 cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg);
 
 int
+cryptfs_tpm2_capability_in_lockout(bool *in_lockout);
+
+int
+cryptfs_tpm2_capability_lockout_auth_required(bool *required);
+
+int
 cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
 		      BYTE *out);
+
+void
+cryptfs_tpm2_da_set_lockout_auth(const char *lockout_auth);
 
 #endif	/* CRYPTFS_TPM2_H */

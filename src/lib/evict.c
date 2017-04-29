@@ -41,11 +41,14 @@ cryptfs_tpm2_evictcontrol(TPMI_DH_OBJECT obj_handle, TPMI_DH_PERSISTENT persist_
 	UINT32 rc;
 
 	password_session_create(&s, auth_password, auth_password_size);
-
+again:
 	rc = Tss2_Sys_EvictControl(cryptfs_tpm2_sys_context, TPM_RH_OWNER,
 				   obj_handle, &s.sessionsData, persist_handle,
 				   &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
+		if (rc == TPM_RC_LOCKOUT && da_reset() == EXIT_SUCCESS)
+			goto again;
+
         	err("Unable to evictcontrol the object (%#x)\n", rc);
 		return -1;
 	}

@@ -33,6 +33,8 @@
 
 #include "internal.h"
 
+#define prop_str(val)	(val) ? "set" : "clear"
+
 typedef struct {
 	TPMI_ALG_HASH alg;
 	unsigned int weight;
@@ -370,4 +372,76 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 	info("%s PCR bank voted\n", show_algorithm_name(preferred_alg));
 
 	return true;
+}
+
+
+static UINT32
+get_permanent_properties(TPMA_PERMANENT *attrs)
+{
+	TPMI_YES_NO more_data;
+	TPMS_CAPABILITY_DATA capability_data;
+	UINT32 rc;
+
+	rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
+				    TPM_CAP_TPM_PROPERTIES, TPM_PT_PERMANENT,
+				    1, &more_data,
+				    &capability_data, NULL);
+	if (rc != TPM_RC_SUCCESS) {
+		err("Unable to get the TPM properties (%#x)", rc);
+		return rc;
+	}
+
+	TPML_TAGGED_TPM_PROPERTY *properties;
+
+	properties = &capability_data.data.tpmProperties;
+
+	if (properties->count != 1)
+		die("Invalid number of TPM permanent properties (%d)\n",
+		    properties->count);
+
+	TPMS_TAGGED_PROPERTY *tagged_property = properties->tpmProperty;
+
+	if (tagged_property->property != TPM_PT_PERMANENT)
+		die("Invalid tagged property (0x%x)\n",
+		    tagged_property->property);
+
+	*attrs = (TPMA_PERMANENT)tagged_property->value;
+
+	return TPM_RC_SUCCESS;
+}
+
+int
+cryptfs_tpm2_capability_in_lockout(bool *in_lockout)
+{
+	if (!in_lockout)
+		return EXIT_FAILURE;
+
+	TPMA_PERMANENT attrs;
+	UINT32 rc;
+
+	rc = get_permanent_properties(&attrs);
+	if (rc == TPM_RC_SUCCESS) {
+		*in_lockout = !!attrs.inLockout;
+		return EXIT_SUCCESS;
+	}
+
+	return EXIT_FAILURE;
+}
+
+int
+cryptfs_tpm2_capability_lockout_auth_required(bool *required)
+{
+	if (!required)
+		return EXIT_FAILURE;
+
+	TPMA_PERMANENT attrs;
+	UINT32 rc;
+
+	rc = get_permanent_properties(&attrs);
+	if (rc == TPM_RC_SUCCESS) {
+		*required = !!attrs.lockoutAuthSet;
+		return EXIT_SUCCESS;
+	}
+
+	return EXIT_FAILURE;
 }
