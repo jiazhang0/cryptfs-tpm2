@@ -38,15 +38,17 @@ static TPMI_ALG_HASH opt_pcr_bank_alg = TPM_ALG_NULL;
 static void
 show_usage(char *prog)
 {
-	info_cont("\nUsage: %s unseal <object>\n", prog);
+	info_cont("\nUsage: %s <options> unseal <object>\n", prog);
 	info_cont("\nobject:\n");
 	info_cont("  The object to be unsealed. The allowed values are:\n"
-		  "    passphrase: Passphrase used to encrypt LUKS\n");
+		  "  - passphrase: Passphrase used to encrypt LUKS\n");
 	info_cont("\nargs:\n");
-	info_cont("  --pcr-bank-alg, -P: (optional) Use the specified PCR "
-		  "bank to bind the created primary key and passphrase.\n");
-	info_cont("  --lockoutauth, -l: (optional) Specify the authorization "
-		  "value for lockout.\n");
+	info_cont("  --pcr-bank-alg, -P:\n"
+		  "    (optional) Use the specified PCR bank to bind the\n"
+		  "    created primary key and passphrase.\n");
+	info_cont("  --lockoutauth, -l:\n"
+		  "    (optional) Specify the authorization value for\n"
+		  "    lockout.\n");
 }
 
 static int

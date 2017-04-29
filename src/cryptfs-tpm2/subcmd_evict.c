@@ -37,12 +37,12 @@ static bool opt_evict_passphrase;
 static void
 show_usage(char *prog)
 {
-	info_cont("\nUsage: %s evict <object> <args>\n", prog);
+	info_cont("\nUsage: %s <options> evict <object> <args>\n", prog);
 	info_cont("\nobject:\n");
 	info_cont("  The object to be evicted. The allowed values are:\n"
-		  "    passphrase: Passphrase used to encrypt LUKS\n"
-		  "    key: Primary key used to seal the passphrase\n"
-		  "    all: All above\n");
+		  "  - passphrase: Passphrase used to encrypt LUKS\n"
+		  "  - key: Primary key used to seal the passphrase\n"
+		  "  - all: All above\n");
 }
 
 static int

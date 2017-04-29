@@ -40,14 +40,16 @@ static unsigned long opt_timeout_ms = DEFAULT_TIMEOUT_MSEC;
 static void
 show_usage(char *prog)
 {
-	info_cont("\nUsage: %s wait <args>\n", prog);
+	info_cont("\nUsage: %s <options> wait <args>\n", prog);
 	info_cont("\nargs:\n");
-	info_cont("  --delay, -d: (optional) The delay (in millisecond) "
-		  "before attempting to connecting resourcemgr. "
-		  "Default: %ld\n", DEFAULT_DELAY_MSEC);
-	info_cont("  --timeout, -t: (optional) The timeout (in millisecond) "
-		  "upon awaiting resourcemgr. 0 indicates infinite wait. "
-		  "Default: %ld\n", DEFAULT_TIMEOUT_MSEC);
+	info_cont("  --delay, -d:\n"
+		  "    (optional)The delay (in millisecond) before\n"
+		  "    attempting to connecting resourcemgr.\n"
+		  "    Default: %ld\n", DEFAULT_DELAY_MSEC);
+	info_cont("  --timeout, -t:\n"
+		  "    (optional) The timeout (in millisecond) upon\n"
+		  "    awaiting resourcemgr. 0 indicates infinite wait.\n"
+		  "    Default: %ld\n", DEFAULT_TIMEOUT_MSEC);
 }
 
 static int

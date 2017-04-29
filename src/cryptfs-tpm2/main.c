@@ -53,22 +53,30 @@ show_usage(const char *prog)
 	info_cont("usage: %s <options> <subcommand> [<args>]\n",
 		  prog);
 	info_cont("\noptions:\n");
-	info_cont("  --help, -h: Print this help information\n");
-	info_cont("  --version, -V: Show version number\n");
-	info_cont("  --verbose, -v: Show verbose messages\n");
-	info_cont("  --quite, -q: Don't show banner information\n");
-	info_cont("  --owner-auth: Specify the authorization value "
-		  "for owner hierarchy.\n");
-	info_cont("  --lockout-auth: Specify the authorization value "
-		  "for lockout.\n");
+	info_cont("  --help, -h:\n"
+		  "    Print this help information\n");
+	info_cont("  --version, -V:\n"
+		  "    Show version number\n");
+	info_cont("  --verbose, -v:\n"
+		  "    Show verbose messages\n");
+	info_cont("  --quite, -q:\n"
+		  "    Don't show banner information\n");
+	info_cont("  --owner-auth:\n"
+		  "    Specify the authorization value for owner "
+		  "hierarchy\n");
+	info_cont("  --lockout-auth:\n"
+		  "    Specify the authorization value for lockout\n");
 	info_cont("\nsubcommand:\n");
-	info_cont("  help: Display the help information for the "
+	info_cont("  help:\n"
+		  "    Display the help information for the "
 		  "specified command\n");
-	info_cont("  seal: Create the persistent primary key and seal the "
+	info_cont("  seal:\n"
+		  "    Create the persistent primary key and seal the "
 		  "passphrase\n");
-	info_cont("  unseal: Unseal the passphrase\n");
-	info_cont("  evict: Evict the persistent primary key and "
-		  "passphrase\n");
+	info_cont("  unseal:\n"
+		  "    Unseal the passphrase\n");
+	info_cont("  evict:\n"
+		  "    Evict the persistent primary key and passphrase\n");
 	info_cont("\nargs:\n");
 	info_cont("  Run `%s help <subcommand>` for the details\n", prog);
 }

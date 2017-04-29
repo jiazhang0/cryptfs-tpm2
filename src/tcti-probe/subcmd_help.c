@@ -36,7 +36,7 @@ static char *opt_command;
 static void
 show_usage(char *prog)
 {
-	info_cont("\nUsage: %s help <subcommand>\n", prog);
+	info_cont("\nUsage: %s <options> help <subcommand>\n", prog);
 	info_cont("\nsubcommand:\n");
 	info_cont("  The subcommand to be shown.\n");
 }
