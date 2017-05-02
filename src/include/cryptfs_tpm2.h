@@ -156,7 +156,6 @@
 extern const char *cryptfs_tpm2_git_commit;
 extern const char *cryptfs_tpm2_build_machine;
 extern int option_quite;
-extern char *option_owner_auth;
 extern char *option_lockout_auth;
 extern bool option_no_da;
 
@@ -196,38 +195,40 @@ extern void
 cryptfs_tpm2_util_teardown_tcti_context(TSS2_TCTI_CONTEXT *tcti_context);
 
 extern int
+cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
+				 unsigned int *owner_auth_size);
+
+extern int
+cryptfs_tpm2_option_set_owner_auth(uint8_t *buf, unsigned int *buf_size);
+
+extern int
+cryptfs_tpm2_option_get_owner_auth(uint8_t *buf, unsigned int *buf_size);
+
+extern int
 cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size);
 
 extern int
-cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
-				char *auth_password,
-				unsigned int auth_password_size);
+cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg);
 
 extern int
 cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
-                               TPMI_ALG_HASH pcr_bank_alg,
-			       char *auth_password,
-			       unsigned int auth_password_size);
+                               TPMI_ALG_HASH pcr_bank_alg);
 
 extern int
 cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 			       size_t *passphrase_size);
 
 extern int
-cryptfs_tpm2_evict_primary_key(char *auth_password,
-			       unsigned int auth_password_size);
+cryptfs_tpm2_evict_primary_key(void);
 
 extern int
-cryptfs_tpm2_evict_passphrase(char *auth_password,
-			      unsigned int auth_password_size);
+cryptfs_tpm2_evict_passphrase(void);
 
 extern int
-cryptfs_tpm2_persist_primary_key(TPMI_DH_OBJECT handle, char *auth_password,
-				 unsigned int auth_password_size);
+cryptfs_tpm2_persist_primary_key(TPMI_DH_OBJECT handle);
 
 extern int
-cryptfs_tpm2_persist_passphrase(TPMI_DH_OBJECT handle, char *auth_password,
-				unsigned int auth_password_size);
+cryptfs_tpm2_persist_passphrase(TPMI_DH_OBJECT handle);
 
 extern bool
 cryptfs_tpm2_capability_digest_supported(TPMI_ALG_HASH *hash_alg);
@@ -240,6 +241,9 @@ cryptfs_tpm2_capability_in_lockout(bool *in_lockout);
 
 int
 cryptfs_tpm2_capability_lockout_auth_required(bool *required);
+
+int
+cryptfs_tpm2_capability_owner_auth_required(bool *required);
 
 int
 cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,

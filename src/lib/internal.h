@@ -34,6 +34,8 @@
 
 #include <cryptfs_tpm2.h>
 
+#include "tpm2_rc.h"
+
 struct session_complex {
 	TPMI_SH_AUTH_SESSION session_handle;
 

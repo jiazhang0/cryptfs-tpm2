@@ -33,14 +33,19 @@
 
 #include "internal.h"
 
-int
-cryptfs_tpm2_evictcontrol(TPMI_DH_OBJECT obj_handle, TPMI_DH_PERSISTENT persist_handle,
-			  char *auth_password, unsigned int auth_password_size)
+static int
+evictcontrol(TPMI_DH_OBJECT obj_handle, TPMI_DH_PERSISTENT persist_handle)
 {
+	uint8_t owner_auth[sizeof(TPMU_HA)];
+	unsigned int owner_auth_size = sizeof(owner_auth);
+
+	if (cryptfs_tpm2_option_get_owner_auth(owner_auth, &owner_auth_size))
+		return EXIT_FAILURE;
+	
 	struct session_complex s;
 	UINT32 rc;
 
-	password_session_create(&s, auth_password, auth_password_size);
+	password_session_create(&s, (char *)owner_auth, owner_auth_size);
 again:
 	rc = Tss2_Sys_EvictControl(cryptfs_tpm2_sys_context, TPM_RH_OWNER,
 				   obj_handle, &s.sessionsData, persist_handle,
@@ -57,37 +62,29 @@ again:
 }
 
 int
-cryptfs_tpm2_evict_primary_key(char *auth_password,
-			       unsigned int auth_password_size)
+cryptfs_tpm2_evict_primary_key(void)
 {
-	return cryptfs_tpm2_evictcontrol((TPMI_DH_OBJECT)CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
-					 (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
-					 auth_password, auth_password_size);
+	return evictcontrol((TPMI_DH_OBJECT)CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
+			    (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PRIMARY_KEY_HANDLE);
 }
 
 int
-cryptfs_tpm2_evict_passphrase(char *auth_password,
-			      unsigned int auth_password_size)
+cryptfs_tpm2_evict_passphrase(void)
 {
-	return cryptfs_tpm2_evictcontrol((TPMI_DH_OBJECT)CRYPTFS_TPM2_PASSPHRASE_HANDLE,
-					 (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PASSPHRASE_HANDLE,
-					 auth_password, auth_password_size);
+	return evictcontrol((TPMI_DH_OBJECT)CRYPTFS_TPM2_PASSPHRASE_HANDLE,
+			    (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PASSPHRASE_HANDLE);
 }
 
 int
-cryptfs_tpm2_persist_primary_key(TPMI_DH_OBJECT handle, char *auth_password,
-				 unsigned int auth_password_size)
+cryptfs_tpm2_persist_primary_key(TPMI_DH_OBJECT handle)
 {
-	return cryptfs_tpm2_evictcontrol(handle,
-					 (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
-					 auth_password, auth_password_size);
+	return evictcontrol(handle,
+			    (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PRIMARY_KEY_HANDLE);
 }
 
 int
-cryptfs_tpm2_persist_passphrase(TPMI_DH_OBJECT handle, char *auth_password,
-				unsigned int auth_password_size)
+cryptfs_tpm2_persist_passphrase(TPMI_DH_OBJECT handle)
 {
-	return cryptfs_tpm2_evictcontrol(handle,
-					 (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PASSPHRASE_HANDLE,
-					 auth_password, auth_password_size);
+	return evictcontrol(handle,
+			    (TPMI_DH_PERSISTENT)CRYPTFS_TPM2_PASSPHRASE_HANDLE);
 }

@@ -276,3 +276,73 @@ cryptfs_tpm2_util_teardown_tcti_context(TSS2_TCTI_CONTEXT *tcti_context)
 	tss2_tcti_finalize(tcti_context);
 	free(tcti_context);
 }
+
+int
+get_input(const char *prompt, uint8_t *buf, unsigned int *buf_len)
+{
+	char input[256];
+
+	fflush(stdin);
+
+	if (prompt) {
+		info_cont("%s", prompt);
+		fflush(stdout);
+	}
+
+	memset(input, 0, sizeof(input));
+
+	if (scanf("%255[^\n]", input) != 1)
+		return EXIT_FAILURE;
+
+	char cr;
+
+	scanf("%c", &cr);
+
+	unsigned int size = strlen(input);
+
+	if (size > *buf_len)
+		size = *buf_len;
+	else
+		*buf_len = size;
+
+	strcpy((char *)buf, input);
+
+	return EXIT_SUCCESS;
+}
+
+int
+cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
+				 unsigned int *owner_auth_size)
+{
+	if (!owner_auth || !owner_auth_size || !*owner_auth_size)
+		return EXIT_FAILURE;
+
+	bool required;
+
+	if (cryptfs_tpm2_capability_owner_auth_required(&required) ==
+	    EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	unsigned int opt_owner_auth_size = 0;
+
+	if (cryptfs_tpm2_option_get_owner_auth(NULL, &opt_owner_auth_size))
+		return EXIT_FAILURE;
+
+	if (required == true) {
+		warn("Owner authentication required\n");
+
+		if (opt_owner_auth_size)
+			return EXIT_FAILURE;
+
+		if (get_input("Owner Authentication: ", owner_auth,
+			      owner_auth_size) == EXIT_FAILURE)
+			return EXIT_FAILURE;
+	} else if (opt_owner_auth_size) {
+		warn("Ignore --owner-auth due to owner authentication not "
+		     "required\n");
+
+		*owner_auth_size = 0;
+	}
+
+	return EXIT_SUCCESS;
+}

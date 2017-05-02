@@ -122,14 +122,13 @@ parse_options(int argc, char *argv[])
 			option_quite = 1;
 			break;
 		case EXTRA_OPT_OWNER_AUTH:
-			if (strlen(optarg) >= sizeof(TPMU_HA)) {
-				err("The authorization value for owner hierarchy is "
-				    "no more than %d characters\n",
-				    (int)sizeof(TPMU_HA) - 1);
-				return -1;
-			}
-			option_owner_auth = strdup(optarg);
-	                break;
+			{
+				unsigned int size = strlen(optarg);
+
+				cryptfs_tpm2_option_set_owner_auth((uint8_t *)optarg,
+								   &size);
+				break;
+	                }
 		case EXTRA_OPT_LOCKOUT_AUTH:
 			if (strlen(optarg) > sizeof(TPMU_HA)) {
 				err("The authorization value for lockout is "

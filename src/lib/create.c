@@ -168,9 +168,7 @@ set_public(TPMI_ALG_PUBLIC type, TPMI_ALG_HASH name_alg, int set_key,
 }
 
 int
-cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
-				char *auth_password,
-				unsigned int auth_password_size)
+cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg)
 {
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
@@ -217,9 +215,6 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 	in_sensitive.t.size = in_sensitive.t.sensitive.userAuth.t.size + 2;
 	in_sensitive.t.sensitive.data.t.size = 0;
 
-	struct session_complex s;
-	password_session_create(&s, auth_password, auth_password_size);
-
 	TPM2B_DATA outside_info = { { 0, } };
 	TPM2B_NAME out_name = { { sizeof(TPM2B_NAME) - 2, } };
 	TPM2B_PUBLIC out_public = { { 0, } };
@@ -227,9 +222,17 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg,
 	TPM2B_DIGEST creation_hash = { { sizeof(TPM2B_DIGEST) - 2, } };
 	TPMT_TK_CREATION creation_ticket = { 0, };
 	TPM_HANDLE obj_handle;
+	uint8_t owner_auth[sizeof(TPMU_HA)];
+	unsigned int owner_auth_size = sizeof(owner_auth);
+
+	cryptfs_tpm2_option_get_owner_auth(owner_auth, &owner_auth_size);
+
+	struct session_complex s;
 	UINT32 rc;
 
-again:
+re_auth:
+	password_session_create(&s, (char *)owner_auth, owner_auth_size);
+redo:
 	rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context,
 				    TPM_RH_OWNER, &s.sessionsData,
 				    &in_sensitive, &in_public,
@@ -239,16 +242,26 @@ again:
 				    &creation_ticket, &out_name,
 				    &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
-		if (rc == TPM_RC_LOCKOUT && da_reset() == EXIT_SUCCESS)
-			goto again;
+		if (rc == TPM_RC_LOCKOUT) {
+			if (da_reset() == EXIT_SUCCESS)
+				goto redo;
+		} else if (tpm2_rc_is_format_one(rc) &&
+			   (tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
+			   TPM_RC_BAD_AUTH) {
+			owner_auth_size = sizeof(owner_auth);
+
+			if (cryptfs_tpm2_util_get_owner_auth(owner_auth,
+							     &owner_auth_size) ==
+							     EXIT_SUCCESS)
+				goto re_auth;
+		}
 
         	err("Unable to create and load the primary key "
 		    "(%#x)\n", rc);
 		return -1;
 	}
 
-	rc = cryptfs_tpm2_persist_primary_key(obj_handle, auth_password,
-					      auth_password_size);
+	rc = cryptfs_tpm2_persist_primary_key(obj_handle);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to persist the primary key\n");
 		return -1;
@@ -262,9 +275,7 @@ again:
 
 int
 cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
-			       TPMI_ALG_HASH pcr_bank_alg,
-			       char *auth_password,
-			       unsigned int auth_password_size)
+			       TPMI_ALG_HASH pcr_bank_alg)
 {
 	TPML_PCR_SELECTION creation_pcrs;
 	TPM2B_DIGEST policy_digest;
@@ -349,7 +360,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	TPM2B_PUBLIC out_public = { { 0, } };
 	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE) - 2, } };
 
-again:
+redo:
 	rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context,
 			     CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
 			     &s.sessionsData, &in_sensitive, &in_public,
@@ -359,7 +370,7 @@ again:
 			     &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
 		if (rc == TPM_RC_LOCKOUT && da_reset() == EXIT_SUCCESS)
-			goto again;
+			goto redo;
 
         	err("Unable to create the passphrase object (%#x)\n", rc);
 		return -1;
@@ -377,10 +388,26 @@ again:
 		return -1;
 	}
 
-	/* TODO: check whether already persisted. TPM_RC_NV_DEFINED (0x14c) */
-	rc = cryptfs_tpm2_persist_passphrase(obj_handle, auth_password,
-					     auth_password_size);
-	if (rc) {
+	uint8_t owner_auth[sizeof(TPMU_HA)];
+	unsigned int owner_auth_size = sizeof(owner_auth);
+
+	cryptfs_tpm2_option_get_owner_auth(owner_auth, &owner_auth_size);
+
+re_auth:
+	/* XXX: check whether already persisted. TPM_RC_NV_DEFINED (0x14c) */
+	rc = cryptfs_tpm2_persist_passphrase(obj_handle);
+	if (rc != TPM_RC_SUCCESS) {
+		if (tpm2_rc_is_format_one(rc) &&
+		    (tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
+		    TPM_RC_BAD_AUTH) {
+			owner_auth_size = sizeof(owner_auth);
+
+			if (cryptfs_tpm2_util_get_owner_auth(owner_auth,
+							     &owner_auth_size) ==
+							     EXIT_SUCCESS)
+				goto re_auth;
+		}
+
 		err("Unable to persist the passphrase object\n");
 		return -1;
 	}

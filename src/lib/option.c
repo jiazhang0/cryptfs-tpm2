@@ -32,6 +32,52 @@
 #include <cryptfs_tpm2.h>
 
 int option_quite;
-char *option_owner_auth;
 char *option_lockout_auth;
 bool option_no_da = false;
+
+static uint8_t owner_auth[sizeof(TPMU_HA)];
+static unsigned int owner_auth_size;
+
+int
+cryptfs_tpm2_option_set_owner_auth(uint8_t *buf, unsigned int *buf_size)
+{
+	if (!buf || !buf_size || !*buf_size)
+		return EXIT_FAILURE;
+
+	owner_auth_size = sizeof(owner_auth);
+
+	if (owner_auth_size > *buf_size)
+		owner_auth_size = *buf_size;
+	else {
+		warn("The authorization value for owner hierarchy is "
+		     "no more than %d characters\n", owner_auth_size);
+
+		*buf_size = owner_auth_size;
+	}
+
+	memcpy(owner_auth, buf, owner_auth_size);
+
+	return EXIT_SUCCESS;
+}
+
+int
+cryptfs_tpm2_option_get_owner_auth(uint8_t *buf, unsigned int *buf_size)
+{
+	if (!buf_size)
+		return EXIT_FAILURE;
+
+	unsigned int size;
+
+	if (owner_auth_size > *buf_size) {
+		size = *buf_size;
+		if (!*buf_size)
+			*buf_size = size;
+	} else {
+		size = owner_auth_size;
+		*buf_size = size;
+	}
+
+	memcpy(buf, owner_auth, size);
+
+	return EXIT_SUCCESS;
+}

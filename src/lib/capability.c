@@ -445,3 +445,21 @@ cryptfs_tpm2_capability_lockout_auth_required(bool *required)
 
 	return EXIT_FAILURE;
 }
+
+int
+cryptfs_tpm2_capability_owner_auth_required(bool *required)
+{
+	if (!required)
+		return EXIT_FAILURE;
+
+	TPMA_PERMANENT attrs;
+	UINT32 rc;
+
+	rc = get_permanent_properties(&attrs);
+	if (rc == TPM_RC_SUCCESS) {
+		*required = !!attrs.ownerAuthSet;
+		return EXIT_SUCCESS;
+	}
+
+	return EXIT_FAILURE;
+}

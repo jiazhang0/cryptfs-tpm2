@@ -127,11 +127,7 @@ run_seal(char *prog)
 	int rc = 0;
 
 	if (opt_setup_key) {
-		rc = cryptfs_tpm2_create_primary_key(opt_pcr_bank_alg,
-						     option_owner_auth,
-						     option_owner_auth ?
-						     strlen(option_owner_auth) :
-						     0);
+		rc = cryptfs_tpm2_create_primary_key(opt_pcr_bank_alg);
 		if (rc)
 			return rc;
 	}
@@ -145,11 +141,7 @@ run_seal(char *prog)
 		}
 
 		rc = cryptfs_tpm2_create_passphrase(opt_passphrase, size,
-						    opt_pcr_bank_alg,
-						    option_owner_auth,
-						    option_owner_auth ?
-						    strlen(option_owner_auth) :
-						    0);
+						    opt_pcr_bank_alg);
 		if (rc)
 			return rc;
 	}
