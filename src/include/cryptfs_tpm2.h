@@ -205,6 +205,22 @@ extern int
 cryptfs_tpm2_option_get_owner_auth(uint8_t *buf, unsigned int *buf_size);
 
 extern int
+cryptfs_tpm2_option_set_primary_key_secret(uint8_t *buf,
+					   unsigned int *buf_size);
+
+extern int
+cryptfs_tpm2_option_get_primary_key_secret(uint8_t *buf,
+					   unsigned int *buf_size);
+
+extern int
+cryptfs_tpm2_option_set_passphrase_secret(uint8_t *buf,
+					  unsigned int *buf_size);
+
+extern int
+cryptfs_tpm2_option_get_passphrase_secret(uint8_t *buf,
+					  unsigned int *buf_size);
+
+extern int
 cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size);
 
 extern int

@@ -37,47 +37,95 @@ bool option_no_da = false;
 
 static uint8_t owner_auth[sizeof(TPMU_HA)];
 static unsigned int owner_auth_size;
+static uint8_t primary_key_secret[sizeof(TPMU_HA)];
+static unsigned int primary_key_secret_size;
+static uint8_t passphrase_secret[sizeof(TPMU_HA)];
+static unsigned int passphrase_secret_size;
+
+#define option_set_value(name, buf, buf_size, obj, obj_size) \
+do {	\
+	if (!buf || !buf_size || !*buf_size) \
+		return EXIT_FAILURE; \
+	\
+	obj_size = sizeof(owner_auth);	\
+	\
+	if (obj_size > *buf_size)	\
+		obj_size = *buf_size;	\
+	else {	\
+		warn("The authorization value for " name " is "	\
+		     "no more than %d characters\n", obj_size);	\
+		\
+		*buf_size = obj_size;	\
+	}	\
+	\
+	memcpy(obj, buf, obj_size);	\
+	\
+	return EXIT_SUCCESS;	\
+} while (0)
+
+#define option_get_value(name, buf, buf_size, obj, obj_size) \
+do {	\
+	if (!buf_size)	\
+		return EXIT_FAILURE;	\
+	\
+	unsigned int __size;	\
+	\
+	if (obj_size > *buf_size) {	\
+		__size = *buf_size;	\
+		if (!*buf_size)	\
+			*buf_size = obj_size;	\
+	} else {	\
+		__size = obj_size;	\
+		*buf_size = __size;	\
+	}	\
+	\
+	memcpy(buf, obj, __size);	\
+	\
+	return EXIT_SUCCESS;	\
+} while (0)
 
 int
 cryptfs_tpm2_option_set_owner_auth(uint8_t *buf, unsigned int *buf_size)
 {
-	if (!buf || !buf_size || !*buf_size)
-		return EXIT_FAILURE;
-
-	owner_auth_size = sizeof(owner_auth);
-
-	if (owner_auth_size > *buf_size)
-		owner_auth_size = *buf_size;
-	else {
-		warn("The authorization value for owner hierarchy is "
-		     "no more than %d characters\n", owner_auth_size);
-
-		*buf_size = owner_auth_size;
-	}
-
-	memcpy(owner_auth, buf, owner_auth_size);
-
-	return EXIT_SUCCESS;
+	option_set_value("owner hierarchy", buf, buf_size, owner_auth,
+			 owner_auth_size);
 }
 
 int
 cryptfs_tpm2_option_get_owner_auth(uint8_t *buf, unsigned int *buf_size)
 {
-	if (!buf_size)
-		return EXIT_FAILURE;
+	option_get_value("owner hierarchy", buf, buf_size, owner_auth,
+			 owner_auth_size);
+}
 
-	unsigned int size;
+int
+cryptfs_tpm2_option_set_primary_key_secret(uint8_t *buf,
+					   unsigned int *buf_size)
+{
+	option_set_value("primary key", buf, buf_size, primary_key_secret,
+			 primary_key_secret_size);
+}
 
-	if (owner_auth_size > *buf_size) {
-		size = *buf_size;
-		if (!*buf_size)
-			*buf_size = size;
-	} else {
-		size = owner_auth_size;
-		*buf_size = size;
-	}
+int
+cryptfs_tpm2_option_get_primary_key_secret(uint8_t *buf,
+					   unsigned int *buf_size)
+{
+	option_get_value("primary key", buf, buf_size, primary_key_secret,
+			 primary_key_secret_size);
+}
 
-	memcpy(buf, owner_auth, size);
+int
+cryptfs_tpm2_option_set_passphrase_secret(uint8_t *buf,
+					  unsigned int *buf_size)
+{
+	option_set_value("passphrase", buf, buf_size, passphrase_secret,
+			 passphrase_secret_size);
+}
 
-	return EXIT_SUCCESS;
+int
+cryptfs_tpm2_option_get_passphrase_secret(uint8_t *buf,
+					  unsigned int *buf_size)
+{
+	option_get_value("passphrase", buf, buf_size, passphrase_secret,
+			 passphrase_secret_size);
 }

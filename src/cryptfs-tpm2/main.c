@@ -66,6 +66,12 @@ show_usage(const char *prog)
 		  "hierarchy\n");
 	info_cont("  --lockout-auth:\n"
 		  "    Specify the authorization value for lockout\n");
+	info_cont("  --key-secret:\n"
+		  "    The authorization secret used to access "
+		  "the primary key object\n");
+	info_cont("  --passphrase-secret:\n"
+		  "    The authorization secret used to access "
+		  "the passphrase object\n");
 	info_cont("\nsubcommand:\n");
 	info_cont("  help:\n"
 		  "    Display the help information for the "
@@ -81,9 +87,11 @@ show_usage(const char *prog)
 	info_cont("  Run `%s help <subcommand>` for the details\n", prog);
 }
 
-#define EXTRA_OPT_BASE			0x8000
-#define EXTRA_OPT_OWNER_AUTH		(EXTRA_OPT_BASE + 0)
-#define EXTRA_OPT_LOCKOUT_AUTH		(EXTRA_OPT_BASE + 1)
+#define EXTRA_OPT_BASE				0x8000
+#define EXTRA_OPT_OWNER_AUTH			(EXTRA_OPT_BASE + 0)
+#define EXTRA_OPT_LOCKOUT_AUTH			(EXTRA_OPT_BASE + 1)
+#define EXTRA_OPT_KEY_SECRET_AUTH		(EXTRA_OPT_BASE + 2)
+#define EXTRA_OPT_PASSPHRASE_SECRET_AUTH	(EXTRA_OPT_BASE + 3)
 
 static int
 parse_options(int argc, char *argv[])
@@ -98,6 +106,10 @@ parse_options(int argc, char *argv[])
 		  EXTRA_OPT_OWNER_AUTH },
 		{ "lockout-auth", required_argument, NULL,
 		  EXTRA_OPT_LOCKOUT_AUTH },
+		{ "key-secret", required_argument, NULL,
+		  EXTRA_OPT_KEY_SECRET_AUTH },
+		{ "passphrase-secret", required_argument, NULL,
+		  EXTRA_OPT_PASSPHRASE_SECRET_AUTH },
 		{ 0 },	/* NULL terminated */
 	};
 
@@ -138,6 +150,22 @@ parse_options(int argc, char *argv[])
 			}
 			option_lockout_auth = strdup(optarg);
 			break;
+		case EXTRA_OPT_KEY_SECRET_AUTH:
+			{
+				unsigned int size = strlen(optarg);
+
+				cryptfs_tpm2_option_set_primary_key_secret((uint8_t *)optarg,
+									   &size);
+				break;
+	                }
+		case EXTRA_OPT_PASSPHRASE_SECRET_AUTH:
+			{
+				unsigned int size = strlen(optarg);
+
+				cryptfs_tpm2_option_set_passphrase_secret((uint8_t *)optarg,
+									  &size);
+				break;
+	                }
 		case 1:
 			index = optind;
 			return subcommand_parse(argv[0], optarg,

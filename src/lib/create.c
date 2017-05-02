@@ -230,9 +230,9 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg)
 	struct session_complex s;
 	UINT32 rc;
 
-re_auth:
-	password_session_create(&s, (char *)owner_auth, owner_auth_size);
 redo:
+	password_session_create(&s, (char *)owner_auth, owner_auth_size);
+
 	rc = Tss2_Sys_CreatePrimary(cryptfs_tpm2_sys_context,
 				    TPM_RH_OWNER, &s.sessionsData,
 				    &in_sensitive, &in_public,
@@ -253,7 +253,7 @@ redo:
 			if (cryptfs_tpm2_util_get_owner_auth(owner_auth,
 							     &owner_auth_size) ==
 							     EXIT_SUCCESS)
-				goto re_auth;
+				goto redo;
 		}
 
         	err("Unable to create and load the primary key "
