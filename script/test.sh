@@ -42,7 +42,7 @@ function seal_all()
 {
 	echo "Sealing all ..."
 
-	local opts=""
+	local opts="$EXTRA_SEAL_OPTS"
 
 	if [ -n "$1" ]; then
 		case $1 in
@@ -54,7 +54,7 @@ function seal_all()
 			;;
 		esac
 
-		opts=" -P $1"
+		opts="$opts -P $1"
 	fi
 
 	cryptfs-tpm2 -q seal all $opts
@@ -114,3 +114,40 @@ test_all sha256 >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
 
 echo -n "[*] testing object generation with auto PCR bank ... "
 test_all auto >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
+
+echo -n "[*] testing DA recovery ... "
+tpm2_takeownership --clear >>$log 2>&1
+tpm2_takeownership --ownerPasswd owner --lockPasswd lockout >>$log 2>&1
+tpm2_dictionarylockout --lockout-passwd lockout --clear-lockout >>$log 2>&1
+tpm2_dictionarylockout --lockout-passwd lockout --setup-parameters \
+    --max-tries 1 \
+    --recovery-time 30 \
+    --lockout-recovery-time 60 >>$log 2>&1
+
+echo "Sealing all with secret set ..." >>$log 2>&1
+cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
+    seal all -P auto >>$log 2>&1
+[ $? -ne 0 ] && echo "[FAILED]" || {
+    echo "Unsealing passphrase with wrong secret ..." >$log 2>&1
+    cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+        unseal passphrase -P auto 2>&1 | grep -q 0x98e
+
+    [ $? -ne 0 ] && echo "[FAILED]" || {
+        cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+            unseal passphrase -P auto 2>&1 | grep -q 0x921
+
+        [ $? -ne 0 ] && echo "[FAILED]" || {
+            echo "Unseal passphrase and reset DA lockout ..." >>$log 2>&1
+            cryptfs-tpm2 -q --owner-auth owner --lockout-auth lockout \
+                --passphrase-secret pass \
+                unseal passphrase -P auto >>$log 2>&1
+
+            [ $? -ne 0 ] && echo "[FAILED]" || {
+                cryptfs-tpm2 -q --owner-auth owner evict all >>$log 2>&1
+                [ $? -eq 0 ] && echo "[SUCCEEDED]" || echo "[FAILED]"
+            }
+        }
+    }
+}
+
+tpm2_takeownership --clear --oldLockPasswd lockout >>$log 2>&1
