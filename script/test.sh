@@ -150,4 +150,31 @@ cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
     }
 }
 
+echo -n "[*] testing object generation without DA ... "
+echo "Sealing all with secret set ..." >>$log 2>&1
+cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
+    seal all -P auto --no-da >>$log 2>&1
+[ $? -ne 0 ] && echo "[FAILED]" || {
+    echo "Unsealing passphrase with wrong secret ..." >$log 2>&1
+    cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+        unseal passphrase -P auto 2>&1 | grep -q 0x9a2
+
+    [ $? -ne 0 ] && echo "[FAILED]" || {
+        cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+            unseal passphrase -P auto 2>&1 | grep -q 0x9a2
+
+        [ $? -ne 0 ] && echo "[FAILED]" || {
+            echo "Unseal passphrase ..." >>$log 2>&1
+            cryptfs-tpm2 -q --owner-auth owner \
+                --passphrase-secret pass \
+                unseal passphrase -P auto >>$log 2>&1
+
+            [ $? -ne 0 ] && echo "[FAILED]" || {
+                cryptfs-tpm2 -q --owner-auth owner evict all >>$log 2>&1
+                [ $? -eq 0 ] && echo "[SUCCEEDED]" || echo "[FAILED]"
+            }
+        }
+    }
+}
+
 tpm2_takeownership --clear --oldLockPasswd lockout >>$log 2>&1
