@@ -64,6 +64,8 @@ clear_lockout(const char *lockout_auth)
 		return EXIT_FAILURE;
 	}
 
+	info("Reset DA lockout\n");
+
         return EXIT_SUCCESS;
 }
 
@@ -74,7 +76,10 @@ da_reset(void)
 	int rc;
 
 	rc = cryptfs_tpm2_capability_lockout_auth_required(&required);
-	if (rc == EXIT_SUCCESS) {
+	if (rc == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	if (required == false) {
 		clear_lockout(NULL);
 		return EXIT_SUCCESS;
 	}

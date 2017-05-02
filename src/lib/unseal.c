@@ -44,6 +44,7 @@ cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 	secret_size = sizeof(secret);
 	get_passphrase_secret(secret, &secret_size);
 
+redo:
 	if (pcr_bank_alg != TPM_ALG_NULL) {
 		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
 
@@ -80,7 +81,7 @@ cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 	TPM2B_SENSITIVE_DATA out_data = {{ sizeof(TPM2B_SENSITIVE_DATA)-2, }};
 
 	UINT32 rc;
-again:
+
 	rc = Tss2_Sys_Unseal(cryptfs_tpm2_sys_context,
 			     CRYPTFS_TPM2_PASSPHRASE_HANDLE,
 			     &s.sessionsData, &out_data,
@@ -88,7 +89,7 @@ again:
 	policy_session_destroy(&s);
 	if (rc != TPM_RC_SUCCESS) {
 		if (rc == TPM_RC_LOCKOUT && da_reset() == EXIT_SUCCESS)
-			goto again;
+			goto redo;
 
 		err("Unable to unseal the passphrase object (%#x)\n", rc);
 		return -1;
