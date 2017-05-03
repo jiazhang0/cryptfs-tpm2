@@ -91,6 +91,9 @@ const char *
 get_passphrase_secret(char *out, unsigned int *out_size);
 
 int
+get_input(const char *prompt, uint8_t *buf, unsigned int *buf_len);
+
+int
 da_check_and_reset(void);
 
 int

@@ -140,16 +140,15 @@ parse_options(int argc, char *argv[])
 				cryptfs_tpm2_option_set_owner_auth((uint8_t *)optarg,
 								   &size);
 				break;
-	                }
-		case EXTRA_OPT_LOCKOUT_AUTH:
-			if (strlen(optarg) > sizeof(TPMU_HA)) {
-				err("The authorization value for lockout is "
-				    "no more than %d characters\n",
-				    (int)sizeof(TPMU_HA));
-				return -1;
 			}
-			option_lockout_auth = strdup(optarg);
-			break;
+		case EXTRA_OPT_LOCKOUT_AUTH:
+			{
+				unsigned int size = strlen(optarg);
+
+				cryptfs_tpm2_option_set_lockout_auth((uint8_t *)optarg,
+								     &size);
+				break;
+			}
 		case EXTRA_OPT_KEY_SECRET_AUTH:
 			{
 				unsigned int size = strlen(optarg);

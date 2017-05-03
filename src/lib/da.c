@@ -33,12 +33,6 @@
 
 #include "internal.h"
 
-static void
-prompt_lockout_auth(char **lockout_auth)
-{
-
-}
-
 static int
 clear_lockout(const char *lockout_auth)
 {
@@ -79,20 +73,39 @@ da_reset(void)
 	if (rc == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
+	uint8_t lockout_auth[sizeof(TPMU_HA)];
+	unsigned int lockout_auth_size = sizeof(lockout_auth);
+
+	rc = cryptfs_tpm2_option_get_lockout_auth(lockout_auth,
+						  &lockout_auth_size);
+	if (rc == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
 	if (required == false) {
-		clear_lockout(NULL);
-		return EXIT_SUCCESS;
+		if (lockout_auth_size)
+			warn("Ignore --lockout-auth due to lockout "
+			     "authentication not required\n");
+
+		return clear_lockout(NULL);
+	}
+
+	if (!lockout_auth_size) {
+		warn("Please specify --lockout-auth to reset DA lockout\n");
+		return EXIT_FAILURE;
 	}
 
 	int retry = 0;
 
 	while (retry++ < CRYPTFS_TPM2_MAX_LOCKOUT_RETRY) {
-		rc = clear_lockout(option_lockout_auth);
-
+		rc = clear_lockout((const char *)lockout_auth);
 		if (rc == EXIT_SUCCESS)
 			break;
 
-		prompt_lockout_auth(&option_lockout_auth);
+		err("Wrong lockout authentication specified\n");
+
+		if (get_input("Lockout Authentication: ", lockout_auth,
+			      &lockout_auth_size) == EXIT_FAILURE)
+			return EXIT_FAILURE;
 	}
 
 	return rc;

@@ -37,6 +37,8 @@ bool option_no_da = false;
 
 static uint8_t owner_auth[sizeof(TPMU_HA)];
 static unsigned int owner_auth_size;
+static uint8_t lockout_auth[sizeof(TPMU_HA)];
+static unsigned int lockout_auth_size;
 static uint8_t primary_key_secret[sizeof(TPMU_HA)];
 static unsigned int primary_key_secret_size;
 static uint8_t passphrase_secret[sizeof(TPMU_HA)];
@@ -96,6 +98,20 @@ cryptfs_tpm2_option_get_owner_auth(uint8_t *buf, unsigned int *buf_size)
 {
 	option_get_value("owner hierarchy", buf, buf_size, owner_auth,
 			 owner_auth_size);
+}
+
+int
+cryptfs_tpm2_option_set_lockout_auth(uint8_t *buf, unsigned int *buf_size)
+{
+	option_set_value("DA lockout", buf, buf_size, lockout_auth,
+			 lockout_auth_size);
+}
+
+int
+cryptfs_tpm2_option_get_lockout_auth(uint8_t *buf, unsigned int *buf_size)
+{
+	option_get_value("DA lockout", buf, buf_size, lockout_auth,
+			 lockout_auth_size);
 }
 
 int

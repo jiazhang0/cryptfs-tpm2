@@ -329,7 +329,7 @@ cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
 		return EXIT_FAILURE;
 
 	if (required == true) {
-		warn("Owner authentication required\n");
+		err("Wrong owner authentication\n");
 
 		if (opt_owner_auth_size)
 			return EXIT_FAILURE;

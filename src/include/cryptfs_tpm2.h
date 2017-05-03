@@ -156,7 +156,6 @@
 extern const char *cryptfs_tpm2_git_commit;
 extern const char *cryptfs_tpm2_build_machine;
 extern int option_quite;
-extern char *option_lockout_auth;
 extern bool option_no_da;
 
 #define TPM_ALG_AUTO		0x4000
@@ -203,6 +202,12 @@ cryptfs_tpm2_option_set_owner_auth(uint8_t *buf, unsigned int *buf_size);
 
 extern int
 cryptfs_tpm2_option_get_owner_auth(uint8_t *buf, unsigned int *buf_size);
+
+extern int
+cryptfs_tpm2_option_set_lockout_auth(uint8_t *buf, unsigned int *buf_size);
+
+extern int
+cryptfs_tpm2_option_get_lockout_auth(uint8_t *buf, unsigned int *buf_size);
 
 extern int
 cryptfs_tpm2_option_set_primary_key_secret(uint8_t *buf,
