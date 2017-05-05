@@ -280,23 +280,36 @@ cryptfs_tpm2_util_teardown_tcti_context(TSS2_TCTI_CONTEXT *tcti_context)
 int
 get_input(const char *prompt, uint8_t *buf, unsigned int *buf_len)
 {
-	char input[256];
-
-	fflush(stdin);
-
 	if (prompt) {
 		info_cont("%s", prompt);
 		fflush(stdout);
 	}
 
-	memset(input, 0, sizeof(input));
+	struct termios term;
+	int rc;
 
-	if (scanf("%255[^\n]", input) != 1)
+	rc = tcgetattr(STDIN_FILENO, &term);
+	if (rc)
+		return rc;
+
+	term.c_lflag &= ~ECHO;
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
+
+	char input[256];
+
+	memset(input, 0, sizeof(input));
+	rc = scanf("%255[^\n]", input);
+
+	term.c_lflag |= ECHO;
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
+
+	if (rc != 1)
 		return EXIT_FAILURE;
 
 	char cr;
 
 	scanf("%c", &cr);
+	puts("\n");
 
 	unsigned int size = strlen(input);
 
