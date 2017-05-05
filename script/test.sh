@@ -128,17 +128,17 @@ echo "Sealing all with secret set ..." >>$log 2>&1
 cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
     seal all -P auto >>$log 2>&1
 [ $? -ne 0 ] && echo "[FAILED]" || {
-    echo "Unsealing passphrase with wrong secret ..." >$log 2>&1
-    cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+    echo "Unsealing passphrase with wrong secret ..." >>$log 2>&1
+    cryptfs-tpm2 -q --passphrase-secret pass1 \
         unseal passphrase -P auto 2>&1 | grep -q 0x98e
 
     [ $? -ne 0 ] && echo "[FAILED]" || {
-        cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+        cryptfs-tpm2 -q --passphrase-secret pass1 \
             unseal passphrase -P auto 2>&1 | grep -q 0x921
 
         [ $? -ne 0 ] && echo "[FAILED]" || {
             echo "Unseal passphrase and reset DA lockout ..." >>$log 2>&1
-            cryptfs-tpm2 -q --owner-auth owner --lockout-auth lockout \
+            cryptfs-tpm2 -q --lockout-auth lockout \
                 --passphrase-secret pass \
                 unseal passphrase -P auto >>$log 2>&1
 
@@ -155,18 +155,17 @@ echo "Sealing all with secret set ..." >>$log 2>&1
 cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
     seal all -P auto --no-da >>$log 2>&1
 [ $? -ne 0 ] && echo "[FAILED]" || {
-    echo "Unsealing passphrase with wrong secret ..." >$log 2>&1
-    cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+    echo "Unsealing passphrase with wrong secret ..." >>$log 2>&1
+    cryptfs-tpm2 -q --passphrase-secret pass1 \
         unseal passphrase -P auto 2>&1 | grep -q 0x9a2
 
     [ $? -ne 0 ] && echo "[FAILED]" || {
-        cryptfs-tpm2 -q --owner-auth owner --passphrase-secret pass1 \
+        cryptfs-tpm2 -q --passphrase-secret pass1 \
             unseal passphrase -P auto 2>&1 | grep -q 0x9a2
 
         [ $? -ne 0 ] && echo "[FAILED]" || {
             echo "Unseal passphrase ..." >>$log 2>&1
-            cryptfs-tpm2 -q --owner-auth owner \
-                --passphrase-secret pass \
+            cryptfs-tpm2 -q --passphrase-secret pass \
                 unseal passphrase -P auto >>$log 2>&1
 
             [ $? -ne 0 ] && echo "[FAILED]" || {
