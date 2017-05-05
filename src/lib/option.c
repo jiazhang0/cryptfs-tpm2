@@ -43,6 +43,7 @@ static uint8_t primary_key_secret[sizeof(TPMU_HA)];
 static unsigned int primary_key_secret_size;
 static uint8_t passphrase_secret[sizeof(TPMU_HA)];
 static unsigned int passphrase_secret_size;
+static bool interactive = false;
 
 #define option_set_value(name, buf, buf_size, obj, obj_size) \
 do {	\
@@ -144,4 +145,21 @@ cryptfs_tpm2_option_get_passphrase_secret(uint8_t *buf,
 {
 	option_get_value("passphrase", buf, buf_size, passphrase_secret,
 			 passphrase_secret_size);
+}
+
+void
+cryptfs_tpm2_option_set_interactive(void)
+{
+	interactive = true;
+}
+
+int
+cryptfs_tpm2_option_get_interactive(bool *required)
+{
+	if (!required)
+		return EXIT_FAILURE;
+
+	*required = interactive;
+
+	return EXIT_SUCCESS;
 }

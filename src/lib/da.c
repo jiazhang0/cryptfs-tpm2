@@ -103,9 +103,15 @@ da_reset(void)
 	info("TPM is in lockout state. Need to type lockout authentication "
 	     "to reset DA lockout\n");
 
-	int retry = 0;
+	if (cryptfs_tpm2_option_get_interactive(&required))
+		return EXIT_FAILURE;
 
 	rc = EXIT_FAILURE;
+
+	if (required == false)
+		goto out;
+
+	int retry = 0;
 
 	while (retry++ < CRYPTFS_TPM2_MAX_LOCKOUT_RETRY) {
 		if (get_input("Lockout Authentication: ", lockout_auth,
@@ -119,6 +125,7 @@ da_reset(void)
 		err("Wrong lockout authentication specified\n");
 	}
 
+out:
 	if (rc == EXIT_SUCCESS)
 		info("Automatically reset DA lockout\n");
 	else

@@ -233,6 +233,12 @@ extern int
 cryptfs_tpm2_option_get_passphrase_secret(uint8_t *buf,
 					  unsigned int *buf_size);
 
+extern void
+cryptfs_tpm2_option_set_interactive(void);
+
+extern int
+cryptfs_tpm2_option_get_interactive(bool *required);
+
 extern int
 cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size);
 

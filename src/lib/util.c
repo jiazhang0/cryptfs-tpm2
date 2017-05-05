@@ -331,6 +331,13 @@ cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
 	if (required == true) {
 		err("Wrong owner authentication\n");
 
+		if (cryptfs_tpm2_option_get_interactive(&required) ==
+		    EXIT_FAILURE)
+			return EXIT_FAILURE;
+
+		if (required == false)
+			return EXIT_FAILURE;
+
 		if (get_input("Owner Authentication: ", owner_auth,
 			      owner_auth_size) == EXIT_FAILURE)
 			return EXIT_FAILURE;
@@ -348,6 +355,15 @@ int
 cryptfs_tpm2_util_get_primary_key_secret(uint8_t *secret,
 					 unsigned int *secret_size)
 {
+	bool required;
+
+	if (cryptfs_tpm2_option_get_interactive(&required) ==
+	    EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	if (required == false)
+		return EXIT_FAILURE;
+
 	if (!secret || !secret_size || !*secret_size)
 		return EXIT_FAILURE;
 
@@ -362,6 +378,14 @@ int
 cryptfs_tpm2_util_get_passphrase_secret(uint8_t *secret,
 					unsigned int *secret_size)
 {
+	bool required;
+
+	if (cryptfs_tpm2_option_get_interactive(&required))
+		return EXIT_FAILURE;
+
+	if (required == false)
+		return EXIT_FAILURE;
+
 	if (!secret || !secret_size || !*secret_size)
 		return EXIT_FAILURE;
 
