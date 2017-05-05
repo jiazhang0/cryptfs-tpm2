@@ -89,24 +89,41 @@ da_reset(void)
 		return clear_lockout(NULL);
 	}
 
-	if (!lockout_auth_size) {
-		warn("Please specify --lockout-auth to reset DA lockout\n");
-		return EXIT_FAILURE;
+	if (lockout_auth_size) {
+		rc = clear_lockout((const char *)lockout_auth);
+		if (rc == EXIT_SUCCESS) {
+			info("Automatically reset DA lockout\n");
+			return rc;
+		}
+
+		err("Wrong lockout authentication specified by "
+		    "--lockout-auth\n");
 	}
+
+	info("TPM is in lockout state. Need to type lockout authentication "
+	     "to reset DA lockout\n");
 
 	int retry = 0;
 
+	rc = EXIT_FAILURE;
+
 	while (retry++ < CRYPTFS_TPM2_MAX_LOCKOUT_RETRY) {
+		if (get_input("Lockout Authentication: ", lockout_auth,
+			      &lockout_auth_size) == EXIT_FAILURE)
+			break;
+
 		rc = clear_lockout((const char *)lockout_auth);
 		if (rc == EXIT_SUCCESS)
 			break;
 
 		err("Wrong lockout authentication specified\n");
-
-		if (get_input("Lockout Authentication: ", lockout_auth,
-			      &lockout_auth_size) == EXIT_FAILURE)
-			return EXIT_FAILURE;
 	}
+
+	if (rc == EXIT_SUCCESS)
+		info("Automatically reset DA lockout\n");
+	else
+		warn("Please specify correct --lockout-auth to reset DA "
+		     "lockout\n");
 
 	return rc;
 }
