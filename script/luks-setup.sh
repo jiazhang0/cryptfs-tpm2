@@ -242,6 +242,13 @@ Options:
  -e|--evict-all
     (Optional) Always evict the primary key and passphrase.
 
+ --old-lockout-auth <old lockoutAuth value>
+    (Optional) Special the old lockoutAuth used to clear the old
+    authorization values.
+
+ --lockout-auth <new lockoutAuth value>
+    (Optional) Set the new lockoutAuth.
+
  -V|--verbose
     (Optional) Show the verbose output.
 
@@ -262,6 +269,8 @@ OPT_EVICT_ALL=0
 OPT_VERBOSE=0
 OPT_MAP_EXISTING_LUKS=0
 OPT_NO_SETUP=0
+OPT_OLD_LOCKOUT_AUTH=""
+OPT_LOUCKOUT_AUTH=""
 
 while [ $# -gt 0 ]; do
     opt=$1
@@ -290,6 +299,12 @@ while [ $# -gt 0 ]; do
 	-e|--evict-all)
 	    OPT_EVICT_ALL=1
 	    ;;
+        --old-lockout-auth)
+            shift && option_check "$1" && OPT_OLD_LOCKOUT_AUTH="$1"
+            ;;
+        --lockout-auth)
+            shift && option_check "$1" && OPT_LOCKOUT_AUTH="$1"
+            ;;
 	-V|--verbose)
 	    OPT_VERBOSE=1
 	    ;;
@@ -379,17 +394,26 @@ if [ $OPT_NO_TPM -eq 0 ]; then
     detect_tpm
     if [ $? -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
-            tpm2_takeownership -c
-            if [ $? -eq 0 ]; then
-                # Disable the DA protection. If lockoutAuth fails, the
-                # recovery interval is a reboot (_TPM_Init followed by
-                # TPM2_Startup).
-                tpm2_dictionarylockout --setup-parameters \
-                    --recovery-time 0 --lockout-recovery-time 0
+            cmd="tpm2_takeownership --clear"
+            [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --oldLockPasswd $OPT_OLD_LOCKOUT_AUTH"
+            [ -n "$OPT_LOCKOUT_AUTH" ] && cmd="${cmd} --LockPasswd $OPT_LOCKOUT_AUTH"
+            eval "$cmd"
+            if [ $? -ne 0 ]; then
+                print_error "Failed to clear authorization values with the lockoutAuth specified"
+                exit 1
             fi
 
-            # Ignore the error messages if something gets wrong
-            cryptfs-tpm2 -q evict all 2>/dev/null
+            # Disable the DA protection. If lockoutAuth fails, the
+            # recovery interval is a reboot (_TPM_Init followed by
+            # TPM2_Startup).
+            cmd="tpm2_dictionarylockout --setup-parameters \
+                     --recovery-time 0 --lockout-recovery-time 0"
+            [ -n "$OPT_LOCKOUT_AUTH" ] && cmd="${cmd} --lockout-passwd $OPT_LOCKOUT_AUTH"
+            eval "$cmd"
+            if [ $? -ne 0 ]; then
+                print_error "Failed to set the default DA policy"
+                exit 1
+            fi
 
             ! cryptfs-tpm2 -q seal all -P auto &&
                 print_error "Unable to create the primary key and passphrase" &&
