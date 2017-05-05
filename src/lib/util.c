@@ -346,3 +346,31 @@ cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
 
 	return EXIT_SUCCESS;
 }
+
+int
+cryptfs_tpm2_util_get_primary_key_secret(uint8_t *secret,
+					 unsigned int *secret_size)
+{
+	if (!secret || !secret_size || !*secret_size)
+		return EXIT_FAILURE;
+
+	if (get_input("Primary Key Secret: ", secret,
+		      secret_size) == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	return EXIT_SUCCESS;
+}
+
+int
+cryptfs_tpm2_util_get_passphrase_secret(uint8_t *secret,
+					unsigned int *secret_size)
+{
+	if (!secret || !secret_size || !*secret_size)
+		return EXIT_FAILURE;
+
+	if (get_input("Passphrase Secret: ", secret,
+		      secret_size) == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	return EXIT_SUCCESS;
+}

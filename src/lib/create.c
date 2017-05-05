@@ -261,6 +261,13 @@ redo:
 		return -1;
 	}
 
+	/* Avoid typing the owner authentication again */
+	/* XXX: only set owner authentication in this way if
+	 * the authentication check really fails with
+	 * Tss2_Sys_CreatePrimary().
+	 */
+	cryptfs_tpm2_option_set_owner_auth(owner_auth, &owner_auth_size);
+
 	rc = cryptfs_tpm2_persist_primary_key(obj_handle);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to persist the primary key\n");
@@ -355,9 +362,10 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE) - 2, } };
 	struct session_complex s;
 
-redo:
+re_auth_pkey:
 	secret_size = sizeof(secret);
 	get_primary_key_secret(secret, &secret_size);
+redo:
 	password_session_create(&s, (char *)secret, secret_size);
 
 	rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context,
@@ -368,8 +376,21 @@ redo:
 			     &creation_hash, &creation_ticket,
 			     &s.sessionsDataOut);
 	if (rc != TPM_RC_SUCCESS) {
-		if (rc == TPM_RC_LOCKOUT && da_reset() == EXIT_SUCCESS)
-			goto redo;
+		if (rc == TPM_RC_LOCKOUT) {
+			if (da_reset() == EXIT_SUCCESS)
+				goto re_auth_pkey;
+		} else if (tpm2_rc_is_format_one(rc) &&
+			   (((tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
+			   TPM_RC_BAD_AUTH) ||
+			   ((tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
+			   TPM_RC_AUTH_FAIL))) {
+			secret_size = sizeof(secret);
+
+			if (cryptfs_tpm2_util_get_primary_key_secret((uint8_t *)secret,
+								     &secret_size) ==
+			    EXIT_SUCCESS)
+				goto redo;
+		}
 
         	err("Unable to create the passphrase object (%#x)\n", rc);
 		return -1;
@@ -387,26 +408,9 @@ redo:
 		return -1;
 	}
 
-	uint8_t owner_auth[sizeof(TPMU_HA)];
-	unsigned int owner_auth_size = sizeof(owner_auth);
-
-	cryptfs_tpm2_option_get_owner_auth(owner_auth, &owner_auth_size);
-
-re_auth:
 	/* XXX: check whether already persisted. TPM_RC_NV_DEFINED (0x14c) */
 	rc = cryptfs_tpm2_persist_passphrase(obj_handle);
 	if (rc != TPM_RC_SUCCESS) {
-		if (tpm2_rc_is_format_one(rc) &&
-		    (tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
-		    TPM_RC_BAD_AUTH) {
-			owner_auth_size = sizeof(owner_auth);
-
-			if (cryptfs_tpm2_util_get_owner_auth(owner_auth,
-							     &owner_auth_size) ==
-							     EXIT_SUCCESS)
-				goto re_auth;
-		}
-
 		err("Unable to persist the passphrase object\n");
 		return -1;
 	}

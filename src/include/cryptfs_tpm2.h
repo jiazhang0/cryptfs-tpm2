@@ -198,6 +198,14 @@ cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
 				 unsigned int *owner_auth_size);
 
 extern int
+cryptfs_tpm2_util_get_primary_key_secret(uint8_t *secret,
+					 unsigned int *secret_size);
+
+extern int
+cryptfs_tpm2_util_get_passphrase_secret(uint8_t *secret,
+					unsigned int *secret_size);
+
+extern int
 cryptfs_tpm2_option_set_owner_auth(uint8_t *buf, unsigned int *buf_size);
 
 extern int
