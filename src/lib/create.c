@@ -386,6 +386,8 @@ redo:
 			   TPM_RC_BAD_AUTH) ||
 			   ((tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
 			   TPM_RC_AUTH_FAIL))) {
+			err("Wrong primary key secret specified\n");
+
 			secret_size = sizeof(secret);
 
 			if (cryptfs_tpm2_util_get_primary_key_secret((uint8_t *)secret,

@@ -96,6 +96,8 @@ redo:
 			   TPM_RC_BAD_AUTH) ||
 			   ((tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
 			   TPM_RC_AUTH_FAIL))) {
+			err("Wrong passphrase secret specified\n");
+
 			secret_size = sizeof(secret);
 
 			if (cryptfs_tpm2_util_get_passphrase_secret((uint8_t *)secret,
