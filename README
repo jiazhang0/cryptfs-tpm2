@@ -85,6 +85,17 @@ if PCR binding is used.
 CAUTION: beware of the permanent loss of them and assoicated data
 encryption if you do this.
 
+Authentication
+--------------
+Access an object in TPM requires an authentication check. The table below
+records the required secret info for the operation to an object.
+
+                      owner-auth  primary-key-secret  passphrase-secret
+seal   (primary key)  Y           N                   N
+seal   (passphrase)   Y           Y                   N
+unseal (passphrase)   N           N                   Y
+evict  (passphrase)   Y           N                   N
+
 Known issues
 ------------
 
