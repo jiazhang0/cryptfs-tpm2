@@ -380,6 +380,13 @@ if [ $OPT_NO_TPM -eq 0 ]; then
     if [ $? -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
             tpm2_takeownership -c
+            if [ $? -eq 0 ]; then
+                # Disable the DA protection. If lockoutAuth fails, the
+                # recovery interval is a reboot (_TPM_Init followed by
+                # TPM2_Startup).
+                tpm2_dictionarylockout --setup-parameters \
+                    --recovery-time 0 --lockout-recovery-time 0
+            fi
 
             # Ignore the error messages if something gets wrong
             cryptfs-tpm2 -q evict all 2>/dev/null
