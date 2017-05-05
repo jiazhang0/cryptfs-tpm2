@@ -268,6 +268,8 @@ redo:
 	 */
 	cryptfs_tpm2_option_set_owner_auth(owner_auth, &owner_auth_size);
 
+	dbg("Preparing to persist the primary key object ...\n");
+
 	rc = cryptfs_tpm2_persist_primary_key(obj_handle);
 	if (rc != TPM_RC_SUCCESS) {
         	err("Unable to persist the primary key\n");
@@ -396,6 +398,8 @@ redo:
 		return -1;
 	}
 
+	dbg("Preparing to load the passphrase object ...\n");
+
 	TPM2B_NAME name_ext = { { sizeof(TPM2B_NAME) - 2, } };
 	TPM_HANDLE obj_handle;
 
@@ -407,6 +411,8 @@ redo:
         	err("Unable to load the passphrase object (%#x)\n", rc);
 		return -1;
 	}
+
+	dbg("Preparing to persiste the passphrase object ...\n");
 
 	/* XXX: check whether already persisted. TPM_RC_NV_DEFINED (0x14c) */
 	rc = cryptfs_tpm2_persist_passphrase(obj_handle);
