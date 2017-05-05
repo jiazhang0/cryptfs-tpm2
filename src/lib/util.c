@@ -331,9 +331,6 @@ cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
 	if (required == true) {
 		err("Wrong owner authentication\n");
 
-		if (opt_owner_auth_size)
-			return EXIT_FAILURE;
-
 		if (get_input("Owner Authentication: ", owner_auth,
 			      owner_auth_size) == EXIT_FAILURE)
 			return EXIT_FAILURE;
