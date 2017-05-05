@@ -347,20 +347,19 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 	memcpy(in_sensitive.t.sensitive.data.t.buffer, passphrase,
 	       passphrase_size);
 
-	struct session_complex s;
-
-	secret_size = sizeof(secret);
-	get_primary_key_secret(secret, &secret_size);
-	password_session_create(&s, (char *)secret, secret_size);
-
 	TPM2B_DATA outside_info = { { 0, } };
 	TPM2B_CREATION_DATA creation_data = { { 0, } };
 	TPM2B_DIGEST creation_hash = { { sizeof(TPM2B_DIGEST) - 2, } };
 	TPMT_TK_CREATION creation_ticket = { 0, };
 	TPM2B_PUBLIC out_public = { { 0, } };
 	TPM2B_PRIVATE out_private = { { sizeof(TPM2B_PRIVATE) - 2, } };
+	struct session_complex s;
 
 redo:
+	secret_size = sizeof(secret);
+	get_primary_key_secret(secret, &secret_size);
+	password_session_create(&s, (char *)secret, secret_size);
+
 	rc = Tss2_Sys_Create(cryptfs_tpm2_sys_context,
 			     CRYPTFS_TPM2_PRIMARY_KEY_HANDLE,
 			     &s.sessionsData, &in_sensitive, &in_public,
