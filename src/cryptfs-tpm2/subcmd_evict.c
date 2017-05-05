@@ -75,13 +75,13 @@ run_evict(char *prog)
 	int rc = 0;
 
 	if (opt_evict_passphrase) {
-		rc = cryptfs_tpm2_evict_primary_key();
+		rc = cryptfs_tpm2_evict_passphrase();
 		if (!rc)
 			info("The persistent passphrase is evicted\n");
 	}
 
 	if (opt_evict_key) {
-		int rc1 = cryptfs_tpm2_evict_passphrase();
+		int rc1 = cryptfs_tpm2_evict_primary_key();
 		if (!rc1)
 			info("The persistent primary key is evicted\n");
 		else
