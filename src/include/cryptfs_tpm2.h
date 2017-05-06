@@ -281,6 +281,21 @@ cryptfs_tpm2_capability_lockout_auth_required(bool *required);
 int
 cryptfs_tpm2_capability_owner_auth_required(bool *required);
 
+extern int
+cryptfs_tpm2_capability_da_disabled(bool *disabled);
+
+extern int
+cryptfs_tpm2_capability_lockout_enforced(bool *enforced);
+
+extern int
+cryptfs_tpm2_capability_get_lockout_counter(UINT32 *counter);
+
+extern int
+cryptfs_tpm2_capability_get_max_tries(UINT32 *max_tries);
+
+extern int
+cryptfs_tpm2_capability_get_lockout_recovery(UINT32 *recovery);
+
 int
 cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
 		      BYTE *out);

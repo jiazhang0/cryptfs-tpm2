@@ -54,6 +54,20 @@ clear_lockout(const char *lockout_auth)
 						&s.sessionsData,
 						&s.sessionsDataOut);
         if (rc != TPM_RC_SUCCESS) {
+		if (rc == TPM_RC_LOCKOUT) {
+			/*
+			 * XXX: recover this sort of lockout via lockoutAuth
+			 * policy.
+			 */
+			UINT32 recovery;
+			int ret;
+
+			ret = cryptfs_tpm2_capability_get_lockout_recovery(&recovery);
+			if (ret == EXIT_SUCCESS)
+				err("TPM lockout will be recovered within %d "
+				    "seconds\n", recovery);
+		}
+
 		err("Unable to reset DA lockout (err: 0x%x)\n", rc);
 		return EXIT_FAILURE;
 	}
@@ -66,8 +80,52 @@ clear_lockout(const char *lockout_auth)
 int
 da_reset(void)
 {
-	bool required;
+	UINT32 counter;
 	int rc;
+
+	rc = cryptfs_tpm2_capability_get_lockout_counter(&counter);
+	if (rc == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	UINT32 max_tries;
+
+	rc = cryptfs_tpm2_capability_get_max_tries(&max_tries);
+	if (rc == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	dbg("counter (%d) VS max-tries (%d)\n", counter, max_tries);
+
+	if (counter != max_tries) {
+		info("Lockout already recovered\n");
+		return EXIT_SUCCESS;
+	}
+
+	bool disabled;
+
+	rc = cryptfs_tpm2_capability_da_disabled(&disabled);
+	if (rc == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	if (disabled == true) {
+		info("DA protection is disabled\n");
+		return EXIT_SUCCESS;
+	}
+
+	bool enforced;
+
+	rc = cryptfs_tpm2_capability_lockout_enforced(&enforced);
+	if (rc == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	/*
+	 * XXX: attempt to fix the DA policy with lockoutAuth.
+	 */
+	if (enforced == true) {
+		err("Unable to reset DA because lockout is enforced\n");
+		return EXIT_FAILURE;
+	}
+
+	bool required;
 
 	rc = cryptfs_tpm2_capability_lockout_auth_required(&required);
 	if (rc == EXIT_FAILURE)

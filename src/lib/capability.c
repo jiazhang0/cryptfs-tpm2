@@ -374,16 +374,15 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 	return true;
 }
 
-
 static UINT32
-get_permanent_properties(TPMA_PERMANENT *attrs)
+get_permanent_property(TPM_PT property, UINT32 *value)
 {
 	TPMI_YES_NO more_data;
 	TPMS_CAPABILITY_DATA capability_data;
 	UINT32 rc;
 
 	rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
-				    TPM_CAP_TPM_PROPERTIES, TPM_PT_PERMANENT,
+				    TPM_CAP_TPM_PROPERTIES, property,
 				    1, &more_data,
 				    &capability_data, NULL);
 	if (rc != TPM_RC_SUCCESS) {
@@ -401,11 +400,11 @@ get_permanent_properties(TPMA_PERMANENT *attrs)
 
 	TPMS_TAGGED_PROPERTY *tagged_property = properties->tpmProperty;
 
-	if (tagged_property->property != TPM_PT_PERMANENT)
+	if (tagged_property->property != property)
 		die("Invalid tagged property (0x%x)\n",
 		    tagged_property->property);
 
-	*attrs = (TPMA_PERMANENT)tagged_property->value;
+	*value = tagged_property->value;
 
 	return TPM_RC_SUCCESS;
 }
@@ -419,7 +418,7 @@ cryptfs_tpm2_capability_in_lockout(bool *in_lockout)
 	TPMA_PERMANENT attrs;
 	UINT32 rc;
 
-	rc = get_permanent_properties(&attrs);
+	rc = get_permanent_property(TPM_PT_PERMANENT, (UINT32 *)&attrs);
 	if (rc == TPM_RC_SUCCESS) {
 		*in_lockout = !!attrs.inLockout;
 		return EXIT_SUCCESS;
@@ -437,7 +436,7 @@ cryptfs_tpm2_capability_lockout_auth_required(bool *required)
 	TPMA_PERMANENT attrs;
 	UINT32 rc;
 
-	rc = get_permanent_properties(&attrs);
+	rc = get_permanent_property(TPM_PT_PERMANENT, (UINT32 *)&attrs);
 	if (rc == TPM_RC_SUCCESS) {
 		*required = !!attrs.lockoutAuthSet;
 		return EXIT_SUCCESS;
@@ -455,11 +454,102 @@ cryptfs_tpm2_capability_owner_auth_required(bool *required)
 	TPMA_PERMANENT attrs;
 	UINT32 rc;
 
-	rc = get_permanent_properties(&attrs);
+	rc = get_permanent_property(TPM_PT_PERMANENT, (UINT32 *)&attrs);
 	if (rc == TPM_RC_SUCCESS) {
 		*required = !!attrs.ownerAuthSet;
 		return EXIT_SUCCESS;
 	}
+
+	return EXIT_FAILURE;
+}
+
+int
+cryptfs_tpm2_capability_da_disabled(bool *disabled)
+{
+	if (!disabled)
+		return EXIT_FAILURE;
+
+	UINT32 recovery_time;
+	UINT32 rc;
+
+	rc = get_permanent_property(TPM_PT_LOCKOUT_INTERVAL,
+				    &recovery_time);
+	if (rc == TPM_RC_SUCCESS) {
+		bool enforced;
+
+		rc = cryptfs_tpm2_capability_lockout_enforced(&enforced);
+		if (rc == EXIT_FAILURE)
+			return EXIT_FAILURE;
+
+		*disabled = !recovery_time && enforced == false;
+		return EXIT_SUCCESS;
+	}
+
+	return EXIT_FAILURE;
+}
+
+int
+cryptfs_tpm2_capability_lockout_enforced(bool *enforced)
+{
+	if (!enforced)
+		return EXIT_FAILURE;
+
+	UINT32 max_tries;
+	int rc;
+
+	rc = cryptfs_tpm2_capability_get_max_tries(&max_tries);
+	if (rc == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	*enforced = !max_tries;
+
+	return EXIT_SUCCESS;
+}
+
+int
+cryptfs_tpm2_capability_get_lockout_counter(UINT32 *counter)
+{
+	if (!counter)
+		return EXIT_FAILURE;
+
+	UINT32 rc;
+
+	rc = get_permanent_property(TPM_PT_LOCKOUT_COUNTER,
+				    counter);
+	if (rc == TPM_RC_SUCCESS)
+		return EXIT_SUCCESS;
+
+	return EXIT_FAILURE;
+}
+
+int
+cryptfs_tpm2_capability_get_max_tries(UINT32 *max_tries)
+{
+	if (!max_tries)
+		return EXIT_FAILURE;
+
+	UINT32 rc;
+
+	rc = get_permanent_property(TPM_PT_MAX_AUTH_FAIL,
+				    max_tries);
+	if (rc == TPM_RC_SUCCESS)
+		return EXIT_SUCCESS;
+
+	return EXIT_FAILURE;
+}
+
+int
+cryptfs_tpm2_capability_get_lockout_recovery(UINT32 *recovery)
+{
+	if (!recovery)
+		return EXIT_FAILURE;
+
+	UINT32 rc;
+
+	rc = get_permanent_property(TPM_PT_LOCKOUT_RECOVERY,
+				    recovery);
+	if (rc == TPM_RC_SUCCESS)
+		return EXIT_SUCCESS;
 
 	return EXIT_FAILURE;
 }
