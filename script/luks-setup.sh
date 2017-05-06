@@ -406,7 +406,7 @@ if [ $OPT_NO_TPM -eq 0 ]; then
             # Disable the DA protection. If lockoutAuth fails, the
             # recovery interval is a reboot (_TPM_Init followed by
             # TPM2_Startup).
-            cmd="tpm2_dictionarylockout --setup-parameters \
+            cmd="tpm2_dictionarylockout --setup-parameters --max-tries 1 \
                      --recovery-time 0 --lockout-recovery-time 0"
             [ -n "$OPT_LOCKOUT_AUTH" ] && cmd="${cmd} --lockout-passwd $OPT_LOCKOUT_AUTH"
             eval "$cmd"
