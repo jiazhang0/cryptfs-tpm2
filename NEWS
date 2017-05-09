@@ -1,3 +1,25 @@
+Version 0.6.0
+=============
+Released: 2017-05-09
+
+- Disable DA protection in luks-setup.sh.
+- Support to set the secret info for the primary key and passphrase secret
+  in luks-setup.sh.
+- Support to specify owner authentication and lockout authentication in
+  luks-setup.sh.
+- Add the test cases for noDA and DA recovery.
+- Add --interactive option to enable the prompt of typing authentications
+  if necessary.
+- Add --key-secret and --passphrase-secret options used to set the
+  secret info for the primary key and passphrase.
+- Improve prompting the user to type owner and lockout authentications.
+- Add --no-da option for seal command in order to create the objects
+  without causing DA lockout.
+- Add --owner-auth and --loutout-auth options used to specify the secret
+  info of owner authentication and lockout authentication.
+- Implement automatic DA lockout recovery.
+- Improve startup reliability in init.cryptfs and luks-setup.sh.
+
 Version 0.5.2
 =============
 Released: 2017-04-26
