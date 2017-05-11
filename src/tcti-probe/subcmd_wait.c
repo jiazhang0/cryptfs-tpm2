@@ -44,11 +44,12 @@ show_usage(char *prog)
 	info_cont("\nargs:\n");
 	info_cont("  --delay, -d:\n"
 		  "    (optional)The delay (in millisecond) before\n"
-		  "    attempting to connecting resourcemgr.\n"
+		  "    attempting to connecting the resource manager.\n"
 		  "    Default: %ld\n", DEFAULT_DELAY_MSEC);
 	info_cont("  --timeout, -t:\n"
 		  "    (optional) The timeout (in millisecond) upon\n"
-		  "    awaiting resourcemgr. 0 indicates infinite wait.\n"
+		  "    awaiting the resource manager. 0 indicates infinite "
+		  "wait.\n"
 		  "    Default: %ld\n", DEFAULT_TIMEOUT_MSEC);
 }
 
@@ -115,9 +116,9 @@ run_wait(char *prog)
 	accurate_delay_begin();
 
 	while (1) {
-		context = cryptfs_tpm2_util_init_tcti_context();
+		context = cryptfs_tpm2_tcti_init_context();
 		if (context) {
-			info("resourcemgr is getting ready\n");
+			info("The resource manager is getting ready\n");
 			break;
 		}
 
@@ -127,18 +128,18 @@ run_wait(char *prog)
 		accurate_delay(opt_delay_ms);
 		total_delay_ms += opt_delay_ms;
 
-		dbg("Already waited for resourcemgr %ld millisecond\n",
-		    total_delay_ms);
+		dbg("Already waited for the resource manager %ld "
+		    "millisecond\n", total_delay_ms);
 
 		if (total_delay_ms >= opt_timeout_ms && opt_timeout_ms) {
-			err("Timeout upon awaiting resourcemgr\n");
+			err("Timeout upon awaiting the resource manager\n");
 			ret = EXIT_FAILURE;
 			break;
 		}
 	}
 
 	if (context)
-		cryptfs_tpm2_util_teardown_tcti_context(context);
+		cryptfs_tpm2_tcti_teardown_context(context);
 
 	return ret;
 }

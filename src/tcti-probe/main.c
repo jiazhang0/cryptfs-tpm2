@@ -62,7 +62,7 @@ show_usage(const char *prog)
 	info_cont("\nsubcommand:\n");
 	info_cont("  help: Display the help information for the "
 		  "specified command\n");
-	info_cont("  wait: wait for resourcemgr getting ready\n");
+	info_cont("  wait: wait for the resource manager getting ready\n");
 }
 
 static int

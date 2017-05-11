@@ -50,6 +50,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <termios.h>
+#include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -58,8 +59,9 @@
 
 #include <subcommand.h>
 
-#include <sapi/tpm20.h>
 #include <tcti/tcti_socket.h>
+#include <tcti/tcti_device.h>
+#include <tcti/tcti-tabrmd.h>
 
 #define stringify(x)			#x
 
@@ -188,12 +190,6 @@ extern int
 cryptfs_tpm2_util_save_output_file(const char *file_path, uint8_t *buf,
 				   unsigned long size);
 
-extern TSS2_TCTI_CONTEXT *
-cryptfs_tpm2_util_init_tcti_context(void);
-
-extern void
-cryptfs_tpm2_util_teardown_tcti_context(TSS2_TCTI_CONTEXT *tcti_context);
-
 extern int
 cryptfs_tpm2_util_get_owner_auth(uint8_t *owner_auth,
 				 unsigned int *owner_auth_size);
@@ -205,6 +201,12 @@ cryptfs_tpm2_util_get_primary_key_secret(uint8_t *secret,
 extern int
 cryptfs_tpm2_util_get_passphrase_secret(uint8_t *secret,
 					unsigned int *secret_size);
+
+extern TSS2_TCTI_CONTEXT *
+cryptfs_tpm2_tcti_init_context(void);
+
+extern void
+cryptfs_tpm2_tcti_teardown_context(TSS2_TCTI_CONTEXT *ctx);
 
 extern int
 cryptfs_tpm2_option_set_owner_auth(uint8_t *buf, unsigned int *buf_size);

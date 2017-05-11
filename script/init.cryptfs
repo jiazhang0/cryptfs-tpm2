@@ -52,7 +52,7 @@ MAX_PASSPHRASE_RETRY_COUNT=3
 # The timeout (tenth of a second) for the rootfs device got ready
 MAX_TIMEOUT_FOR_WAITING_RAWDEV=60
 
-# The timeout (millisecond) upon awaiting resourcemgr
+# The timeout (millisecond) upon awaiting the resource manager
 MAX_TIMEOUT_FOR_WAITING_RESOURCEMGR=3000
 
 #
@@ -318,10 +318,8 @@ function map_luks
     local try_once=1
     local err=1
     if [ $tpm_absent -eq 0 ]; then
-        (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
-
-        # Delay 100ms before connecting resourcemgr per attempt, and
-        # totally await resourcemgr 3s at most.
+        # Delay 100ms before connecting the resource manager per attempt, and
+        # totally await the resource manager 3s at most.
         tcti-probe -q wait -d 100 -t $MAX_TIMEOUT_FOR_WAITING_RESOURCEMGR 2>/dev/null
         err=$?
 
@@ -339,7 +337,6 @@ function map_luks
         fi
 
         rm -f "$TMP_DIR/$PASSPHRASE"
-        pkill -9 resourcemgr
     fi
 
     if [ $err -ne 0 ]; then
@@ -378,7 +375,6 @@ function trap_handler
 
     rm -f "$TMP_DIR/$PASSPHRASE" 2>/dev/null
 
-    pkill -9 resourcemgr 2>/dev/null
     [ $TPM_TIS_MODULE_LOADED -eq 1 ] && modprobe --quiet -r tpm_tis
     [ $TPM_CRB_MODULE_LOADED -eq 1 ] && modprobe --quiet -r tpm_crb    
     [ ! -z "$TPM_DEVICE" ] && rm -f "$TPM_DEVICE" 2>/dev/null
@@ -387,6 +383,8 @@ function trap_handler
         umount "$TMP_DIR" 2>/dev/null
         rmdir --ignore-fail-on-non-empty "$TMP_DIR" 2>/dev/null
     fi
+
+    unset TSS2_TCTI
 }
 
 
@@ -448,6 +446,7 @@ tpm_absent=1
 if detect_tpm_chip tpm_absent; then
     ! ifconfig lo up && print_error "Unable to active the loop interface" && exit 1
     tpm_absent=0
+    export TSS2_TCTI=device
 else
     tpm_absent=1
 fi

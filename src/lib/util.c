@@ -240,43 +240,6 @@ cryptfs_tpm2_util_save_output_file(const char *file_path, uint8_t *buf,
 	return 0;
 }
 
-TSS2_TCTI_CONTEXT *
-cryptfs_tpm2_util_init_tcti_context(void)
-{
-	TCTI_SOCKET_CONF cfg = {
-		DEFAULT_HOSTNAME,
-		DEFAULT_RESMGR_TPM_PORT
-	};
-	size_t size;
-	TSS2_TCTI_CONTEXT *tcti_context;
-	TSS2_RC rc;
-
-	rc = InitSocketTcti(NULL, &size, &cfg, 0);
-	if (rc != TSS2_RC_SUCCESS) {
-		err("Unable to get the size of tcti context\n");
-		return NULL;
-	}
-
-	tcti_context = (TSS2_TCTI_CONTEXT *)malloc(size);
-	if (tcti_context) {
-		rc = InitSocketTcti(tcti_context, &size, &cfg, 0);
-		if (rc != TSS2_RC_SUCCESS) {
-			err("Unable to initialize tcti context\n");
-			free(tcti_context);
-			tcti_context = NULL;
-		}
-	}
-
-	return tcti_context;
-}
-
-void
-cryptfs_tpm2_util_teardown_tcti_context(TSS2_TCTI_CONTEXT *tcti_context)
-{
-	tss2_tcti_finalize(tcti_context);
-	free(tcti_context);
-}
-
 int
 get_input(const char *prompt, uint8_t *buf, unsigned int *buf_len)
 {

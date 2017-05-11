@@ -38,7 +38,7 @@
 VERSION="0.1.0"
 
 # If the luks-setup.sh is called to map a drive before the boot is completed
-# manage the resourcemgr here as needed
+# manage the resource manager here as needed
 RESOURCEMGR_STARTED=0
 DEFAULT_ENCRYPTION_NAME="${DEFAULT_ENCRYPTION_NAME:-luks_part}"
 TPM_ABSENT=1
@@ -85,7 +85,7 @@ function print_verbose()
 function trap_handler()
 {
     print_verbose "Cleaning up ..."
-    [ $RESOURCEMGR_STARTED -eq 1 ] && pkill resourcemgr
+    [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
     [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
 }
 
@@ -118,8 +118,8 @@ function unseal_passphrase()
     local passphrase=$1
     local err=0
 
-    if ! pgrep resourcemgr > /dev/null; then
-        (! /usr/sbin/resourcemgr >/dev/null 2>&1) &
+    if ! pgrep tpm2-abrmd > /dev/null; then
+        (! /usr/sbin/tpm2-abrmd >/dev/null 2>&1) &
         RESOURCEMGR_STARTED=1
         tcti-probe -q wait -d 100 -t 3000 2>/dev/null
         err=$?
@@ -129,10 +129,10 @@ function unseal_passphrase()
         ! cryptfs-tpm2 -q unseal passphrase -P auto -o "$passphrase" &&
 	    print_error "Unable to unseal the passphrase" && return 1
     else
-	print_error "Unable to contact resourcemgr" && return 1
+	print_error "Unable to contact the resource manager" && return 1
     fi
 
-    [ $RESOURCEMGR_STARTED -eq 1 ] && pkill resourcemgr
+    [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
 
     return 0
 }

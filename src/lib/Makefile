@@ -10,6 +10,7 @@ OBJS_$(LIB_NAME) = \
 		   option.o \
 		   subcommand.o \
 		   util.o \
+		   tcti.o \
 		   build_info.o \
 		   secret_area.o \
 		   secret.o \

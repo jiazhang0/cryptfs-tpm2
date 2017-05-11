@@ -84,7 +84,7 @@ teardown_sys_context(void)
 void __attribute__ ((constructor))
 libcryptfs_tpm2_init(void)
 {
-	tcti_context = cryptfs_tpm2_util_init_tcti_context();
+	tcti_context = cryptfs_tpm2_tcti_init_context();
 	if (!tcti_context)
 		exit(1);
 
@@ -95,6 +95,6 @@ void __attribute__((destructor))
 libcryptfs_tpm2_fini(void)
 {
 	teardown_sys_context();
-	cryptfs_tpm2_util_teardown_tcti_context(tcti_context);
+	cryptfs_tpm2_tcti_teardown_context(tcti_context);
 	tcti_context = NULL;
 }
