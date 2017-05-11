@@ -4,8 +4,8 @@ include $(TOPDIR)/rules.mk
 all: luks-setup.sh encrypt_secret.py Makefile
 
 install: all
-	$(INSTALL) -d -m 755 $(DESTDIR)$(sbindir)
-	$(INSTALL) -m 700 luks-setup.sh $(DESTDIR)$(sbindir)
+	$(INSTALL) -d -m 755 $(DESTDIR)$(SBINDIR)
+	$(INSTALL) -m 700 luks-setup.sh $(DESTDIR)$(SBINDIR)
 
 clean:
 	@$(RM) -f encrypt_secret.py

@@ -35,11 +35,11 @@ clean:
 	    *.secret
 
 install: all
-	$(INSTALL) -d -m 755 $(DESTDIR)$(libdir)
-	$(INSTALL) -m 755 $(LIB_NAME).a $(DESTDIR)$(libdir)
-	$(INSTALL) -m 755 $(LIB_NAME).so $(DESTDIR)$(libdir)/$(LIB_NAME).so.$(VERSION)
-	$(foreach x, $(LIB_NAME).so, ln -sfn $(x).$(VERSION) $(DESTDIR)$(libdir)/$(patsubst %,%.$(MAJOR_VERSION).$(MINOR_VERSION),$(x)); \
-		ln -sfn $(x).$(MAJOR_VERSION).$(MINOR_VERSION) $(DESTDIR)$(libdir)/$(patsubst %,%.$(MAJOR_VERSION),$(x));)
+	$(INSTALL) -d -m 755 $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -m 755 $(LIB_NAME).a $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -m 755 $(LIB_NAME).so $(DESTDIR)$(LIBDIR)/$(LIB_NAME).so.$(VERSION)
+	$(foreach x, $(LIB_NAME).so, ln -sfn $(x).$(VERSION) $(DESTDIR)$(LIBDIR)/$(patsubst %,%.$(MAJOR_VERSION).$(MINOR_VERSION),$(x)); \
+		ln -sfn $(x).$(MAJOR_VERSION).$(MINOR_VERSION) $(DESTDIR)$(LIBDIR)/$(patsubst %,%.$(MAJOR_VERSION),$(x));)
 
 $(LIB_NAME).so: $(OBJS_$(LIB_NAME))
 	$(CC) $^ -o $@ $(CFLAGS) -shared -Wl,-soname,$(patsubst %.$(VERSION),%,$@)

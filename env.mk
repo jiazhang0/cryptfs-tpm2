@@ -8,7 +8,6 @@ EXTRA_CFLAGS ?=
 EXTRA_LDFLAGS ?=
 
 DEBUG_BUILD ?=
-DESTDIR ?=
 prefix ?= /usr/local
 libdir ?= $(prefix)/lib
 sbindir ?= $(prefix)/sbin
@@ -16,6 +15,11 @@ includedir ?= $(prefix)/include
 
 tpm2_tss_includedir ?= $(includedir)
 tpm2_tss_libdir ?= $(libdir)
+
+# For the installation
+DESTDIR ?=
+LIBDIR ?= $(libdir)
+SBINDIR ?= $(sbindir)
 
 # The authorization password for the primary key
 primary_key_secret ?= H31i05

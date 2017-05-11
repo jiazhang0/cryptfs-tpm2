@@ -17,5 +17,5 @@ clean:
 	@$(RM) $(OBJS_$(BIN_NAME)) $(BIN_NAME)
 
 install: all
-	$(INSTALL) -d -m 755 $(DESTDIR)$(sbindir)
-	$(INSTALL) -m 700 $(BIN_NAME) $(DESTDIR)$(sbindir)
+	$(INSTALL) -d -m 755 $(DESTDIR)$(SBINDIR)
+	$(INSTALL) -m 700 $(BIN_NAME) $(DESTDIR)$(SBINDIR)
