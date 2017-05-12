@@ -7,6 +7,7 @@ LIB_TARGETS := $(LIB_NAME).so $(LIB_NAME).a
 
 OBJS_$(LIB_NAME) = \
 		   init.o \
+		   tss2.o \
 		   option.o \
 		   subcommand.o \
 		   util.o \
@@ -45,7 +46,7 @@ install: all
 $(LIB_NAME).so: $(OBJS_$(LIB_NAME))
 	$(CC) $^ -o $@ $(CFLAGS) -shared -Wl,-soname,$(patsubst %.$(VERSION),%,$@)
 
-$(LIB_NAME).a: $(OBJS_$(LIB_NAME))
+$(LIB_NAME).a: $(filter-out init.o,$(OBJS_$(LIB_NAME)))
 	$(AR) rcs $@ $^
 
 define encrypt_secret

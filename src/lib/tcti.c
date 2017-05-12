@@ -86,7 +86,7 @@ init_tcti_device(void)
 	TSS2_TCTI_CONTEXT *ctx;
 	TSS2_RC rc;
 
-	rc = InitDeviceTcti(NULL, &size, 0);
+	rc = InitDeviceTcti(NULL, &size, NULL);
 	if (rc != TSS2_RC_SUCCESS) {
 		err("Unable to get the size of device tcti context\n");
 		return NULL;

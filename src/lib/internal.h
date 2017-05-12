@@ -50,6 +50,12 @@ struct session_complex {
 
 extern TSS2_SYS_CONTEXT *cryptfs_tpm2_sys_context;
 
+TSS2_RC
+tss2_init_sys_context(void);
+
+void
+tss2_teardown_sys_context(void);
+
 int
 util_digest_size(TPMI_ALG_HASH hash_alg, UINT16 *alg_size);
 
