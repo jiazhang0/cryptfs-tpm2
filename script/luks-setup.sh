@@ -363,12 +363,12 @@ if [ $OPT_NO_SETUP -eq 1 ] ; then
             exit 1
 	fi
 
-	! unseal_passphrase "$TEMP_DIR/passphrase" && exit 1
-
 	if [ $OPT_NO_TPM -eq 0 ] ; then
 	    detect_tpm
 	    [ $? -eq 0 ] && TPM_ABSENT=0
 	fi
+
+	! unseal_passphrase "$TEMP_DIR/passphrase" && exit 1
 
 	! map_luks_partition "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" \
             "$TPM_ABSENT" "$TEMP_DIR" && exit 1
