@@ -89,6 +89,7 @@ function trap_handler()
     print_verbose "Cleaning up ..."
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
     [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
+    unset TPM2TOOLS_DEVICE_FILE TPM2TOOLS_TCTI_NAME TSS2_TCTI
 }
 
 function detect_tpm()
@@ -110,6 +111,18 @@ function detect_tpm()
 
     [ $tpm_absent -eq 1 ] && print_info "No TPM device found" && return 1
 
+    pgrep tpm2-abrmd >/dev/null
+    [ $? -ne 0 ] && {
+        TPM2TOOLS_TCTI_NAME=device
+        export TPM2TOOLS_DEVICE_FILE=/dev/tpm0
+        TSS2_TCTI=device
+    } || {
+        TPM2TOOLS_TCTI_NAME=tabrmd
+        TSS2_TCTI=tabrmd
+    }
+
+    export TPM2TOOLS_TCTI_NAME TSS2_TCTI
+
     print_info "TPM device /dev/$dev detected"
 
     return 0
@@ -120,8 +133,7 @@ function unseal_passphrase()
     local passphrase=$1
     local err=0
 
-    if ! pgrep tpm2-abrmd > /dev/null; then
-        (! /usr/sbin/tpm2-abrmd >/dev/null 2>&1) &
+    if [ x"$TPM2TOOLS_TCTI_NAME" = x"tabrmd" ]; then
         RESOURCEMGR_STARTED=1
         tcti-probe -q wait -d 100 -t 3000 2>/dev/null
         err=$?
