@@ -14,18 +14,20 @@ libcryptfs-tpm2.so.
 
 Build
 -----
-This package depends on TPM2.0-TSS library. Download it (see the section
-"Reference" for the download link) and run the script "bootstrap" to compile
-the library, then switch to root of cryptfs-tpm2 and run "make" to build
-cryptfs-tpm2.
+This package depends on TPM2.0-TSS and tpm2-abrmd. Download them (see the
+section "Reference" for the download link) and run the script "bootstrap" to
+compile the library, then switch to root directory of cryptfs-tpm2 and run
+"make" to build cryptfs-tpm2.
 
-Alternately, specifying the macros tpm2_tss_includedir and tpm2_tss_libdir
-to build cryptfs-tpm2 with TPM2.0-TSS even though it was built but not
-installed. For example:
+Alternately, specifying the macros tpm2_tss_includedir, tpm2_tss_libdir
+and tpm2_tabrmd_includedir to build cryptfs-tpm2 with TPM2.0-TSS and tpm2-abrmd
+even though they were built but not installed. For example:
 
 $ export TSS2_ROOT=<path_to_TPM2.0-TSS>
+$ export TABRMD_ROOT=<path_to_tpm2-abrmd>
 $ tpm2_tss_includedir=$TSS2_ROOT/include \
   tpm2_tss_libdir="$TSS2_ROOT/sysapi/.libs $TSS2_ROOT/tcti/.libs" \
+  tpm2_tabrmd_includedir="$TABRMD_ROOT/include" \
   make
 
 Note: define the macro "CROSS_COMPILE=" in command line if specifying cross
@@ -116,8 +118,11 @@ http://ibmswtpm.sourceforge.net/ibmswtpm2.html
 
 Reference
 ---------
-TPM2.0-TSS - The TCG TPM2 Software Stack
+TPM2.0-TSS - The TCG TPM2 Software Stack (Use 1.x branch)
 https://github.com/01org/TPM2.0-TSS
+
+tpm2-abrmd - The resource manager
+https://github.com/01org/tpm2-abrmd.git
 
 tpm2.0-tools - The TPM 2.0 tools
 https://github.com/01org/tpm2.0-tools
