@@ -54,7 +54,8 @@ show_usage(char *prog)
 	info_cont("  --passphrase, -p:\n"
 		  "    (optional) Explicitly set the passphrase value\n"
 		  "    (32-byte at most) instead of the one generated\n"
-		  "    by TPM randomly.\n");
+		  "    by TPM randomly. This parameter allows to be\n"
+		  "    specified as a file path.\n");
 	info_cont("  --no-da:\n"
 		  "    (optional) The authorization failure never cause\n"
 		  "    DA lockout\n");
@@ -135,7 +136,16 @@ run_seal(char *prog)
 	}
 
 	if (opt_setup_passphrase) {
-		size_t size = opt_passphrase ? strlen(opt_passphrase) : 0;
+		size_t size;
+
+		if (opt_passphrase) {
+			rc = cryptfs_tpm2_util_load_file(opt_passphrase,
+							 (uint8_t **)&opt_passphrase,
+							 (unsigned long *)&size);
+			if (rc)
+				size = strlen(opt_passphrase);
+		} else
+			size = 0;
 
 		if (size > CRYPTFS_TPM2_PASSPHRASE_MAX_SIZE) {
 			err("The passphrase explicitly specified is too long\n");
