@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # The wrapper script for the creation of LUKS partition
 #
@@ -46,36 +46,31 @@ DEFAULT_ENCRYPTION_NAME="${DEFAULT_ENCRYPTION_NAME:-luks_part}"
 TPM_ABSENT=1
 TEMP_DIR=""
 
-function print_critical()
-{
+print_critical() {
     printf "\033[1;35m"
     echo "$@"
     printf "\033[0m"
 }
 
-function print_error()
-{
+print_error() {
     printf "\033[1;31m"
     echo "$@"
     printf "\033[0m"
 }
 
-function print_warning()
-{
+print_warning() {
     printf "\033[1;33m"
     echo "$@"
     printf "\033[0m"
 }
 
-function print_info()
-{
+print_info() {
     printf "\033[1;32m"
     echo "$@"
     printf "\033[0m"
 }
 
-function print_verbose()
-{
+print_verbose() {
     [ $OPT_VERBOSE -eq 0 ] && return 0
 
     printf "\033[1;36m"
@@ -84,16 +79,14 @@ function print_verbose()
 }
 
 # Remove the sensitive passphrase in case accidentally terminated
-function trap_handler()
-{
+trap_handler() {
     print_verbose "Cleaning up ..."
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
     [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
     unset TPM2TOOLS_DEVICE_FILE TPM2TOOLS_TCTI_NAME TSS2_TCTI
 }
 
-function detect_tpm()
-{
+detect_tpm() {
     [ ! -e /sys/class/tpm ] && print_info "TPM subsystem is not enabled" && return 1
 
     local tpm_devices=$(ls /sys/class/tpm)
@@ -128,8 +121,7 @@ function detect_tpm()
     return 0
 }
 
-function unseal_passphrase()
-{
+unseal_passphrase() {
     local passphrase=$1
     local err=0
 
@@ -151,13 +143,11 @@ function unseal_passphrase()
     return 0
 }
 
-function is_luks_partition()
-{
+is_luks_partition() {
     cryptsetup isLuks "$1"
 }
 
-function create_luks_partition()
-{
+create_luks_partition() {
     local luks_dev="$1"
     local luks_name="$2"
     local tpm_absent="$3"
@@ -181,8 +171,7 @@ function create_luks_partition()
     return 0
 }
 
-function map_luks_partition()
-{
+map_luks_partition() {
     local luks_dev="$1"
     local luks_name="$2"
     local tpm_absent="$3"
@@ -199,24 +188,21 @@ function map_luks_partition()
     return 0
 }
 
-function unmap_luks_partition()
-{
+unmap_luks_partition() {
     local luks_name="$1"
 
     [ -e "/dev/mapper/$luks_name" ] && print_info "Unmapping the LUKS partition $luks_name ..." &&
         cryptsetup luksClose "$luks_name"
 }
 
-function option_check()
-{
+option_check() {
     if [ -z "$1" ] || echo "$1" | grep -q "^-"; then
         print_error "No value specified for option $arg"
         exit 1
     fi
 }
 
-function show_help()
-{
+show_help() {
     cat <<EOF
 $PROG_NAME - creation tool for LUKS partition
 Version: $VERSION
