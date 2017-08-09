@@ -68,7 +68,7 @@ ROOTFS_DEV="$2"
 ROOTFS_MODE="${3:-rw}"
 # The mapping name of device-mapper crypt target for
 # the LUKS partition.
-LUKS_NAME="${4:-cryptfs}"
+LUKS_NAME="${4:-cryptfs_tpm2}"
 
 TPM_TIS_MODULE_LOADED=0
 TPM_CRB_MODULE_LOADED=0
