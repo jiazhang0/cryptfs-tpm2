@@ -50,7 +50,7 @@ $(LIB_NAME).a: $(filter-out init.o,$(OBJS_$(LIB_NAME)))
 	$(AR) rcs $@ $^
 
 define encrypt_secret
-	$(TOPDIR)/script/encrypt_secret.py -i "$(1)" > "$(2)" || exit 1
+	$(TOPDIR)/scripts/encrypt_secret.py -i "$(1)" > "$(2)" || exit 1
 endef
 
 build_info.c: build_info.c.in
@@ -60,10 +60,10 @@ build_info.c: build_info.c.in
 
 secret_area.S: primary_key.secret passphrase.secret
 
-primary_key.secret: $(TOPDIR)/script/encrypt_secret.py
+primary_key.secret: $(TOPDIR)/scripts/encrypt_secret.py
 	$(call encrypt_secret,$(primary_key_secret),$@)
 
-passphrase.secret: $(TOPDIR)/script/encrypt_secret.py
+passphrase.secret: $(TOPDIR)/scripts/encrypt_secret.py
 	$(call encrypt_secret,$(passphrase_secret),$@)
 
 secret.c: secret.c.in

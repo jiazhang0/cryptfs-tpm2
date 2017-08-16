@@ -6,6 +6,6 @@ src/tcti-probe/tcti-probe
 *.secret
 src/lib/build_info.c
 src/lib/secret.c
-script/encrypt_secret.py
+scripts/encrypt_secret.py
 *.patch
 *.swp
