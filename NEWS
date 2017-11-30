@@ -1,3 +1,11 @@
+Version 0.6.1
+=============
+Released: 2017-11-30
+
+- Sync up with upstream for the recent tpm2-tss changes.
+- Re-licensed under BSD 3-clause.
+- Support to talk with the new resource manager tpm2-tabrmd.
+
 Version 0.6.0
 =============
 Released: 2017-05-09
