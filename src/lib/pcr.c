@@ -43,8 +43,8 @@ cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
 
 	pcrs.count = 1;
 	pcrs.pcrSelections->hash = bank_alg;
-	pcrs.pcrSelections->sizeofSelect = PCR_SELECT_MAX;
-	memset(pcrs.pcrSelections->pcrSelect, 0, PCR_SELECT_MAX);
+	pcrs.pcrSelections->sizeofSelect = TPM2_PCR_SELECT_MAX;
+	memset(pcrs.pcrSelections->pcrSelect, 0, TPM2_PCR_SELECT_MAX);
 	pcrs.pcrSelections->pcrSelect[index / 8] |= (1 << (index % 8));
 
 	/* Obviously I'm lazy of using malloc() here */
@@ -57,7 +57,7 @@ cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
 	rc = Tss2_Sys_PCR_Read(cryptfs_tpm2_sys_context, NULL, &pcrs,
 			       &pcr_update_counter, &pcrs_out, &pcr_digest,
 			       NULL);
-	if (rc != TPM_RC_SUCCESS) {
+	if (rc != TPM2_RC_SUCCESS) {
 		err("Unable to read the PCR (%#x)\n", rc);
 		return -1;
 	}
@@ -81,10 +81,10 @@ cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
 
 	util_digest_size(bank_alg, &alg_size);
 
-	if (pcr_digest.digests->t.size != alg_size)
+	if (pcr_digest.digests->size != alg_size)
 		return -1;
 
-	memcpy(out, pcr_digest.digests->t.buffer, alg_size);
+	memcpy(out, pcr_digest.digests->buffer, alg_size);
 
 	return 0;
 }
