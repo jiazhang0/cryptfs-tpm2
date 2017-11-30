@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # Author:
-#        Lans Zhang <jia.zhang@windriver.com>
+#        Jia Zhang <qianyue.zj@alibaba-inc.com>
 #
 
 function check_ownership()
