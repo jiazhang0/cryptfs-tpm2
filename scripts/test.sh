@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # Author:
-#        Jia Zhang <qianyue.zj@alibaba-inc.com>
+#        Jia Zhang <zhang.jia@linux.alibaba.com>
 #
 
 function check_ownership()
