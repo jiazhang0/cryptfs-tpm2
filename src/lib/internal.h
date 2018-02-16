@@ -66,7 +66,7 @@ password_session_create(struct session_complex *s, char *auth_password,
 			unsigned int auth_password_size);
 
 int
-policy_session_create(struct session_complex *s, TPM2_SE type,
+policy_session_create(struct session_complex *s, TPM_SE type,
                       TPMI_ALG_HASH hash_alg);
 
 void
