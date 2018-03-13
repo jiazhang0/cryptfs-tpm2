@@ -110,7 +110,7 @@ detect_tpm() {
         export TPM2TOOLS_DEVICE_FILE=/dev/tpm0
         TSS2_TCTI=device
     } || {
-        TPM2TOOLS_TCTI_NAME=tabrmd
+        TPM2TOOLS_TCTI_NAME=abrmd
         TSS2_TCTI=tabrmd
     }
 
@@ -125,7 +125,7 @@ unseal_passphrase() {
     local passphrase=$1
     local err=0
 
-    if [ x"$TPM2TOOLS_TCTI_NAME" = x"tabrmd" ]; then
+    if [ x"$TPM2TOOLS_TCTI_NAME" = x"abrmd" ]; then
         RESOURCEMGR_STARTED=1
         tcti-probe -q wait -d 100 -t 3000 2>/dev/null
         err=$?
