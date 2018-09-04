@@ -43,7 +43,7 @@ cryptfs_tpm2_read_pcr(TPMI_ALG_HASH bank_alg, unsigned int index,
 
 	pcrs.count = 1;
 	pcrs.pcrSelections->hash = bank_alg;
-	pcrs.pcrSelections->sizeofSelect = TPM2_PCR_SELECT_MAX;
+	pcrs.pcrSelections->sizeofSelect = 3;
 	memset(pcrs.pcrSelections->pcrSelect, 0, TPM2_PCR_SELECT_MAX);
 	pcrs.pcrSelections->pcrSelect[index / 8] |= (1 << (index % 8));
 

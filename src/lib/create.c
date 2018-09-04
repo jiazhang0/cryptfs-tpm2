@@ -262,7 +262,7 @@ cryptfs_tpm2_create_primary_key(TPMI_ALG_HASH pcr_bank_alg)
 
 		creation_pcrs.count = 1;
 		creation_pcrs.pcrSelections->hash = pcr_bank_alg;
-		creation_pcrs.pcrSelections->sizeofSelect = TPM2_PCR_SELECT_MAX;
+		creation_pcrs.pcrSelections->sizeofSelect = 3;
 		memset(creation_pcrs.pcrSelections->pcrSelect, 0,
 		       TPM2_PCR_SELECT_MAX);
 		creation_pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
@@ -399,7 +399,7 @@ cryptfs_tpm2_create_passphrase(char *passphrase, size_t passphrase_size,
 
 		creation_pcrs.count = 1;
 		creation_pcrs.pcrSelections->hash = pcr_bank_alg;
-		creation_pcrs.pcrSelections->sizeofSelect = TPM2_PCR_SELECT_MAX;
+		creation_pcrs.pcrSelections->sizeofSelect = 3;
 		memset(creation_pcrs.pcrSelections->pcrSelect, 0,
 		       TPM2_PCR_SELECT_MAX);
 		creation_pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
