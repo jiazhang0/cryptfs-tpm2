@@ -163,7 +163,7 @@ extern const char *cryptfs_tpm2_build_machine;
 extern int option_quite;
 extern bool option_no_da;
 
-#define TPM_ALG_AUTO		0x4000
+#define TPM2_ALG_AUTO		0x4000
 
 extern int
 cryptfs_tpm2_util_verbose(void);
