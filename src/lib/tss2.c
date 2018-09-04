@@ -35,6 +35,11 @@
 
 #include "internal.h"
 
+#define TSSWG_INTEROP 1
+#define TSS_SAPI_FIRST_FAMILY 2
+#define TSS_SAPI_FIRST_LEVEL 1
+#define TSS_SAPI_FIRST_VERSION 108
+
 TSS2_SYS_CONTEXT *cryptfs_tpm2_sys_context;
 
 static TSS2_TCTI_CONTEXT *tcti_context;
