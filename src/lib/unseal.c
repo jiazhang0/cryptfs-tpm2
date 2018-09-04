@@ -58,7 +58,7 @@ redo:
 
 		pcrs.count = 1;
 		pcrs.pcrSelections->hash = pcr_bank_alg;
-		pcrs.pcrSelections->sizeofSelect = TPM2_PCR_SELECT_MAX;
+		pcrs.pcrSelections->sizeofSelect = 3;
 		memset(pcrs.pcrSelections->pcrSelect, 0, TPM2_PCR_SELECT_MAX);
 		pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
 			(1 << (pcr_index % 8));
