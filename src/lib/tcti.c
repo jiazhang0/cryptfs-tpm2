@@ -40,22 +40,22 @@ init_tcti_tabrmd(void)
 {
 	TSS2_TCTI_CONTEXT *ctx;
 	size_t size;
-	TSS2_RC (*init)(TSS2_TCTI_CONTEXT *, size_t *);
+	TSS2_RC (*init)(TSS2_TCTI_CONTEXT *, size_t *, const char *);
 	TSS2_RC rc;
 
-	tcti_handle = dlopen("libtcti-tabrmd.so.0", RTLD_LAZY);
+	tcti_handle = dlopen("libtss2-tcti-tabrmd.so.0", RTLD_LAZY);
 	if (!tcti_handle) {
 		err("Unable to find out the tabrmd tcti library\n");
 		return NULL;
 	}
 
-	init = dlsym(tcti_handle, "tss2_tcti_tabrmd_init");
+	init = dlsym(tcti_handle, "Tss2_Tcti_Tabrmd_Init");
 	if (!init) {
 		dlclose(tcti_handle);
 		return NULL;
 	}
 
-	rc = init(NULL, &size);
+	rc = init(NULL, &size, NULL);
 	if (rc != TSS2_RC_SUCCESS) {
 		dlclose(tcti_handle);
 		err("Unable to get the size of tabrmd tcti context\n");
@@ -64,7 +64,7 @@ init_tcti_tabrmd(void)
 
 	ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
 	if (ctx) {
-		rc = init(ctx, &size);
+		rc = init(ctx, &size, NULL);
 		if (rc != TSS2_RC_SUCCESS) {
 			err("Unable to initialize tabrmd tcti context\n");
 			free(ctx);
@@ -79,16 +79,12 @@ init_tcti_tabrmd(void)
 TSS2_TCTI_CONTEXT *
 init_tcti_device(void)
 {
-	TCTI_DEVICE_CONF cfg = {
-		.device_path = "/dev/tpm0",
-		.logCallback = NULL,
-		.logData  = NULL,
-	};
+	const char *cfg = "/dev/tpm0";
 	size_t size;
 	TSS2_TCTI_CONTEXT *ctx;
 	TSS2_RC rc;
 
-	rc = InitDeviceTcti(NULL, &size, NULL);
+	rc = Tss2_Tcti_Device_Init(NULL, &size, NULL);
 	if (rc != TSS2_RC_SUCCESS) {
 		err("Unable to get the size of device tcti context\n");
 		return NULL;
@@ -96,7 +92,7 @@ init_tcti_device(void)
 
 	ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
 	if (ctx) {
-		rc = InitDeviceTcti(ctx, &size, &cfg);
+		rc = Tss2_Tcti_Device_Init(ctx, &size, cfg);
 		if (rc != TSS2_RC_SUCCESS) {
 			err("Unable to initialize device tcti context\n");
 			free(ctx);
@@ -110,18 +106,12 @@ init_tcti_device(void)
 TSS2_TCTI_CONTEXT *
 init_tcti_socket(void)
 {
-	TCTI_SOCKET_CONF cfg = {
-		.hostname = DEFAULT_HOSTNAME,
-		.port = 2321,
-		.logCallback = NULL,
-		.logBufferCallback = NULL,
-		.logData = NULL,
-	};
+	const char *cfg = "host=127.0.0.1,port=2321";
 	size_t size;
 	TSS2_TCTI_CONTEXT *ctx;
 	TSS2_RC rc;
 
-	rc = InitSocketTcti(NULL, &size, &cfg, 0);
+	rc = Tss2_Tcti_Mssim_Init(NULL, &size, cfg);
 	if (rc != TSS2_RC_SUCCESS) {
 		err("Unable to get the size of socket tcti context\n");
 		return NULL;
@@ -129,7 +119,7 @@ init_tcti_socket(void)
 
 	ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
 	if (ctx) {
-		rc = InitSocketTcti(ctx, &size, &cfg, 0);
+		rc = Tss2_Tcti_Mssim_Init(ctx, &size, cfg);
 		if (rc != TSS2_RC_SUCCESS) {
 			err("Unable to initialize socket tcti context\n");
 			free(ctx);
@@ -167,7 +157,7 @@ cryptfs_tpm2_tcti_init_context(void)
 void
 cryptfs_tpm2_tcti_teardown_context(TSS2_TCTI_CONTEXT *ctx)
 {
-	tss2_tcti_finalize(ctx);
+	Tss2_Tcti_Finalize(ctx);
 	free(ctx);
 
 	if (tcti_handle)

@@ -47,10 +47,10 @@ cryptfs_tpm2_unseal_passphrase(TPMI_ALG_HASH pcr_bank_alg, void **passphrase,
 	get_passphrase_secret(secret, &secret_size);
 
 redo:
-	if (pcr_bank_alg != TPM_ALG_NULL) {
+	if (pcr_bank_alg != TPM2_ALG_NULL) {
 		TPMI_ALG_HASH policy_digest_alg = pcr_bank_alg;
 
-		if (policy_session_create(&s, TPM_SE_POLICY, policy_digest_alg))
+		if (policy_session_create(&s, TPM2_SE_POLICY, policy_digest_alg))
 			return -1;
 
 		TPML_PCR_SELECTION pcrs;
@@ -58,8 +58,8 @@ redo:
 
 		pcrs.count = 1;
 		pcrs.pcrSelections->hash = pcr_bank_alg;
-		pcrs.pcrSelections->sizeofSelect = PCR_SELECT_MAX;
-		memset(pcrs.pcrSelections->pcrSelect, 0, PCR_SELECT_MAX);
+		pcrs.pcrSelections->sizeofSelect = 3;
+		memset(pcrs.pcrSelections->pcrSelect, 0, TPM2_PCR_SELECT_MAX);
 		pcrs.pcrSelections->pcrSelect[pcr_index / 8] |=
 			(1 << (pcr_index % 8));
 
@@ -75,12 +75,12 @@ redo:
 		}
 
 		/* TODO: move this call to policy_session_create() */
-		policy_auth_set(&s.sessionData, s.session_handle,
+		policy_auth_set(&s.sessionsData.auths[0], s.session_handle,
 				(char *)secret, secret_size);
 	} else
 		password_session_create(&s, (char *)secret, secret_size);
 
-	TPM2B_SENSITIVE_DATA out_data = {{ sizeof(TPM2B_SENSITIVE_DATA)-2, }};
+	TPM2B_SENSITIVE_DATA out_data = { sizeof(TPM2B_SENSITIVE_DATA)-2, };
 
 	UINT32 rc;
 
@@ -89,15 +89,15 @@ redo:
 			     &s.sessionsData, &out_data,
 			     &s.sessionsDataOut);
 	policy_session_destroy(&s);
-	if (rc != TPM_RC_SUCCESS) {
-		if (rc == TPM_RC_LOCKOUT) {
+	if (rc != TPM2_RC_SUCCESS) {
+		if (rc == TPM2_RC_LOCKOUT) {
 			if (da_reset() == EXIT_SUCCESS)
 				goto redo;
 		} else if (tpm2_rc_is_format_one(rc) &&
-			   (((tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
-			   TPM_RC_BAD_AUTH) ||
-			   ((tpm2_rc_get_code_7bit(rc) | RC_FMT1) ==
-			   TPM_RC_AUTH_FAIL))) {
+			   (((tpm2_rc_get_code_7bit(rc) | TPM2_RC_FMT1) ==
+			   TPM2_RC_BAD_AUTH) ||
+			   ((tpm2_rc_get_code_7bit(rc) | TPM2_RC_FMT1) ==
+			   TPM2_RC_AUTH_FAIL))) {
 			err("Wrong passphrase secret specified\n");
 
 			secret_size = sizeof(secret);
@@ -112,14 +112,14 @@ redo:
 		return -1;
 	}
 
-	info("Succeed to unseal the passphrase (%d-byte)\n", out_data.t.size);
+	info("Succeed to unseal the passphrase (%d-byte)\n", out_data.size);
 
-	*passphrase = malloc(out_data.t.size);
+	*passphrase = malloc(out_data.size);
 	if (!*passphrase)
 		return -1;
 
-	memcpy(*passphrase, out_data.t.buffer, out_data.t.size);
-	*passphrase_size = out_data.t.size;
+	memcpy(*passphrase, out_data.buffer, out_data.size);
+	*passphrase_size = out_data.size;
 
 	return 0;
 }

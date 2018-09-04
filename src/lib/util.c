@@ -43,20 +43,20 @@ int
 util_digest_size(TPMI_ALG_HASH hash_alg, UINT16 *alg_size)
 {
 	switch (hash_alg) {
-	case TPM_ALG_SHA1:
-		*alg_size = SHA1_DIGEST_SIZE;
+	case TPM2_ALG_SHA1:
+		*alg_size = TPM2_SHA1_DIGEST_SIZE;
 		break;
-	case TPM_ALG_SHA256:
-		*alg_size = SHA256_DIGEST_SIZE;
+	case TPM2_ALG_SHA256:
+		*alg_size = TPM2_SHA256_DIGEST_SIZE;
 		break;
-	case TPM_ALG_SHA384:
-		*alg_size = SHA384_DIGEST_SIZE;
+	case TPM2_ALG_SHA384:
+		*alg_size = TPM2_SHA384_DIGEST_SIZE;
 		break;
-	case TPM_ALG_SHA512:
-		*alg_size = SHA512_DIGEST_SIZE;
+	case TPM2_ALG_SHA512:
+		*alg_size = TPM2_SHA512_DIGEST_SIZE;
 		break;
-	case TPM_ALG_SM3_256:
-		*alg_size = SM3_256_DIGEST_SIZE;
+	case TPM2_ALG_SM3_256:
+		*alg_size = TPM2_SM3_256_DIGEST_SIZE;
 		break;
 	default:
 		err("Unsupported hash algorithm %#x\n", hash_alg);

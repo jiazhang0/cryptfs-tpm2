@@ -40,7 +40,7 @@ CFLAGS := -D_GNU_SOURCE -std=gnu99 -O2 -Wall -Werror \
 	  $(addprefix $(join -L,), $(tpm2_tss_libdir)) \
 	  `$(PKG_CONFIG) --cflags glib-2.0` \
 	  `$(PKG_CONFIG) --libs glib-2.0` \
-	  -ldl -lsapi -ltcti-socket -ltcti-device \
+	  -ldl -ltss2-sys -ltss2-tcti-mssim -ltss2-tcti-device \
 	  $(EXTRA_CFLAGS) $(addprefix $(join -Wl,,),$(LDFLAGS))
 
 ifneq ($(DEBUG_BUILD),)

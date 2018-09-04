@@ -61,9 +61,9 @@
 
 #include <subcommand.h>
 
-#include <tcti/tcti_socket.h>
-#include <tcti/tcti_device.h>
-#include <tcti/tcti-tabrmd.h>
+#include <tss2_tcti_mssim.h>
+#include <tss2_tcti_device.h>
+#include <tss2-tcti-tabrmd.h>
 
 #define stringify(x)			#x
 
@@ -163,7 +163,7 @@ extern const char *cryptfs_tpm2_build_machine;
 extern int option_quite;
 extern bool option_no_da;
 
-#define TPM_ALG_AUTO		0x4000
+#define TPM2_ALG_AUTO		0x4000
 
 extern int
 cryptfs_tpm2_util_verbose(void);

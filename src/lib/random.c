@@ -38,8 +38,8 @@
 int
 cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size)
 {
-	TPM2B_DIGEST random_bytes = { { sizeof(TPM2B_DIGEST) - 2, } };
-	TPM_RC rc;
+	TPM2B_DIGEST random_bytes = { sizeof(TPM2B_DIGEST) - 2, };
+	TPM2_RC rc;
 
 	rc = Tss2_Sys_GetRandom(cryptfs_tpm2_sys_context, NULL, *req_size,
 				&random_bytes, NULL);
@@ -48,16 +48,16 @@ cryptefs_tpm2_get_random(uint8_t *random, size_t *req_size)
 		return -1;
 	}
 
-	if (random_bytes.t.size < *req_size) {
-		*req_size = random_bytes.t.size;
+	if (random_bytes.size < *req_size) {
+		*req_size = random_bytes.size;
 		warn("Random number truncated to %d-byte\n",
-		     random_bytes.t.size);
+		     random_bytes.size);
 	}
 
-	cryptfs_tpm2_util_hex_dump("RNG random", random_bytes.t.buffer,
-				   random_bytes.t.size);
+	cryptfs_tpm2_util_hex_dump("RNG random", random_bytes.buffer,
+				   random_bytes.size);
 
-	memcpy(random, random_bytes.t.buffer, *req_size);
+	memcpy(random, random_bytes.buffer, *req_size);
 
 	return 0;
 }
