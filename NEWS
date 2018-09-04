@@ -1,3 +1,9 @@
+Version 0.7.0
+=============
+Released: 2018-09-06
+
+- Rebased to tpm2-tss 2.0
+
 Version 0.6.2
 =============
 Released: 2018-02-16
