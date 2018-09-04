@@ -75,7 +75,7 @@ redo:
 		}
 
 		/* TODO: move this call to policy_session_create() */
-		policy_auth_set(&s.sessionData, s.session_handle,
+		policy_auth_set(&s.sessionsData.auths[0], s.session_handle,
 				(char *)secret, secret_size);
 	} else
 		password_session_create(&s, (char *)secret, secret_size);

@@ -38,13 +38,8 @@
 static void
 complete_session_complex(struct session_complex *s)
 {
-	s->sessionDataArray[0] = &s->sessionData;
-	s->sessionsData.cmdAuthsCount = 1;
-	s->sessionsData.cmdAuths = s->sessionDataArray;
-
-	s->sessionDataOutArray[0] = &s->sessionDataOut;
-	s->sessionsDataOut.rspAuthsCount = 1;
-	s->sessionsDataOut.rspAuths = s->sessionDataOutArray;
+	s->sessionsData.count = 1;
+	s->sessionsDataOut.count = 1;
 }
 
 static void
@@ -156,7 +151,7 @@ void
 password_session_create(struct session_complex *s, char *auth_password,
 			unsigned int auth_password_size)
 {
-	set_password_auth(&s->sessionData, auth_password, auth_password_size);
+	set_password_auth(&s->sessionsData.auths[0], auth_password, auth_password_size);
 
 	s->session_handle = TPM2_RS_PW;
 

@@ -57,14 +57,8 @@
 
 struct session_complex {
 	TPMI_SH_AUTH_SESSION session_handle;
-
-	TPMS_AUTH_COMMAND sessionData;
-	TPMS_AUTH_COMMAND *sessionDataArray[1];
-	TSS2_SYS_CMD_AUTHS sessionsData;
-
-	TPMS_AUTH_RESPONSE sessionDataOut;
-	TPMS_AUTH_RESPONSE *sessionDataOutArray[1];
-	TSS2_SYS_RSP_AUTHS sessionsDataOut;
+	TSS2L_SYS_AUTH_COMMAND sessionsData;
+	TSS2L_SYS_AUTH_RESPONSE sessionsDataOut;
 };
 
 extern TSS2_SYS_CONTEXT *cryptfs_tpm2_sys_context;
