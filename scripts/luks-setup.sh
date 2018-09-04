@@ -100,6 +100,10 @@ detect_tpm() {
 
         grep -q "TPM 2.0 Device" "/sys/class/tpm/$dev/device/description" 2>/dev/null &&
             tpm_absent=0 && break
+
+        # With newer kernel, TPM device description file is renamed
+        grep -q "TPM 2.0 Device" "/sys/class/tpm/$dev/device/firmware_node/description" 2>/dev/null &&
+            tpm_absent=0 && break
     done
 
     [ $tpm_absent -eq 1 ] && print_info "No TPM device found" && return 1
