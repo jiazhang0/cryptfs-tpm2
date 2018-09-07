@@ -56,7 +56,13 @@
 
 #define BUFFER_SIZE(type, field) (sizeof((((type *)NULL)->t.field)))
 #define TPM2B_TYPE_INIT(type, field) { .size = BUFFER_SIZE(type, field), }
-#endif
+
+struct session_complex {
+	TPMI_SH_AUTH_SESSION session_handle;
+	TSS2L_SYS_AUTH_COMMAND sessionsData;
+	TSS2L_SYS_AUTH_RESPONSE sessionsDataOut;
+};
+#else
 
 struct session_complex {
 	TPMI_SH_AUTH_SESSION session_handle;
@@ -69,7 +75,7 @@ struct session_complex {
 	TPMS_AUTH_RESPONSE *sessionDataOutArray[1];
 	TSS2_SYS_RSP_AUTHS sessionsDataOut;
 };
-
+#endif
 extern TSS2_SYS_CONTEXT *cryptfs_tpm2_sys_context;
 
 TSS2_RC
