@@ -61,9 +61,15 @@
 
 #include <subcommand.h>
 
+#ifndef TSS2_LEGACY_V1
+#include <tss2_tcti_mssim.h>
+#include <tss2_tcti_device.h>
+#include <tss2-tcti-tabrmd.h>
+#else
 #include <tcti/tcti_socket.h>
 #include <tcti/tcti_device.h>
 #include <tcti/tcti-tabrmd.h>
+#endif
 
 #define stringify(x)			#x
 
@@ -85,6 +91,90 @@
 			exit(EXIT_FAILURE);	\
 		}	\
 	} while (0)
+
+/* Definitions to make it compatible with tpm2-tss 1.x */
+#ifdef TSS2_LEGACY_V1
+#define TPM2_RC                                 TPM_RC
+#define TPM2_RC_SUCCESS                         TPM_RC_SUCCESS
+#define TPM2_RC_LOCKOUT                         TPM_RC_LOCKOUT
+#define TPM2_RC_FMT1                            RC_FMT1
+#define TPM2_RC_BAD_AUTH                        TPM_RC_BAD_AUTH
+#define TPM2_RC_AUTH_FAIL                       TPM_RC_AUTH_FAIL
+
+#define TPM2_ALG_RSA                            TPM_ALG_RSA
+#define TPM2_ALG_HMAC                           TPM_ALG_HMAC
+#define TPM2_ALG_AES                            TPM_ALG_AES
+#define TPM2_ALG_KEYEDHASH                      TPM_ALG_KEYEDHASH
+#define TPM2_ALG_MGF1                           TPM_ALG_MGF1
+#define TPM2_ALG_XOR                            TPM_ALG_XOR
+#define TPM2_ALG_NULL                           TPM_ALG_NULL
+#define TPM2_ALG_SHA1                           TPM_ALG_SHA1
+#define TPM2_ALG_SHA256                         TPM_ALG_SHA256
+#define TPM2_ALG_SHA384                         TPM_ALG_SHA384
+#define TPM2_ALG_SHA512                         TPM_ALG_SHA512
+#define TPM2_ALG_SM3_256                        TPM_ALG_SM3_256
+#define TPM2_ALG_SM4                            TPM_ALG_SM4
+#define TPM2_ALG_RSASSA                         TPM_ALG_RSASSA
+#define TPM2_ALG_RSAES                          TPM_ALG_RSAES
+#define TPM2_ALG_RSAPSS                         TPM_ALG_RSAPSS
+#define TPM2_ALG_OAEP                           TPM_ALG_OAEP
+#define TPM2_ALG_ECDSA                          TPM_ALG_ECDSA
+#define TPM2_ALG_ECDH                           TPM_ALG_ECDH
+#define TPM2_ALG_SM2                            TPM_ALG_SM2
+#define TPM2_ALG_ECSCHNORR                      TPM_ALG_ECSCHNORR
+#define TPM2_ALG_KDF1_SP800_56A                 TPM_ALG_KDF1_SP800_56A
+#define TPM2_ALG_KDF1_SP800_108                 TPM_ALG_KDF1_SP800_108
+#define TPM2_ALG_ECC                            TPM_ALG_ECC
+#define TPM2_ALG_SYMCIPHER                      TPM_ALG_SYMCIPHER
+#define TPM2_ALG_CTR                            TPM_ALG_CTR
+#define TPM2_ALG_OFB                            TPM_ALG_OFB
+#define TPM2_ALG_CBC                            TPM_ALG_CBC
+#define TPM2_ALG_CFB                            TPM_ALG_CFB
+#define TPM2_ALG_ECB                            TPM_ALG_ECB
+#define TPM2_ALG_ERROR                          TPM_ALG_ERROR
+#define TPM2_ALG_ID                             TPM_ALG_ID
+
+#define TPM2_SHA1_DIGEST_SIZE                   SHA1_DIGEST_SIZE
+#define TPM2_SHA256_DIGEST_SIZE                 SHA256_DIGEST_SIZE
+#define TPM2_SHA384_DIGEST_SIZE                 SHA384_DIGEST_SIZE
+#define TPM2_SHA512_DIGEST_SIZE                 SHA512_DIGEST_SIZE
+#define TPM2_SM3_256_DIGEST_SIZE                SM3_256_DIGEST_SIZE
+
+#define TPM2_ECC_NIST_P256                      TPM_ECC_NIST_P256
+
+#define TPM2_PCR_SELECT_MAX                     PCR_SELECT_MAX
+
+#define TPM2_CAP_HANDLES                        TPM_CAP_HANDLES
+#define TPM2_CAP_ALGS                           TPM_CAP_ALGS
+#define TPM2_CAP_ALGS                           TPM_CAP_ALGS
+#define TPM2_CAP_PCRS                           TPM_CAP_PCRS
+#define TPM2_CAP_TPM_PROPERTIES                 TPM_CAP_TPM_PROPERTIES
+
+#define TPM2_PT                                 TPM_PT
+#define TPM2_PT_NONE                            TPM_PT_NONE
+#define TPM2_PT_TPM2_HR_PERSISTENT              TPM_PT_HR_PERSISTENT
+#define TPM2_PT_LOCKOUT_INTERVAL                TPM_PT_LOCKOUT_INTERVAL
+#define TPM2_PT_LOCKOUT_COUNTER                 TPM_PT_LOCKOUT_COUNTER
+#define TPM2_PT_MAX_AUTH_FAIL                   TPM_PT_MAX_AUTH_FAIL
+#define TPM2_PT_LOCKOUT_RECOVERY                TPM_PT_LOCKOUT_RECOVERY
+#define TPM2_PT_PERMANENT                       TPM_PT_PERMANENT
+
+#define TPM2_SE                                 TPM_SE
+#define TPM2_SE_TRIAL                           TPM_SE_TRIAL
+#define TPM2_SE_POLICY                          TPM_SE_POLICY
+
+#define TPM2_HT_PERSISTENT                      TPM_HT_PERSISTENT
+
+#define TPM2_RH_OWNER                           TPM_RH_OWNER
+#define TPM2_RH_LOCKOUT                         TPM_RH_LOCKOUT
+#define TPM2_RH_NULL                            TPM_RH_NULL
+
+#define TPM2_RS_PW                              TPM_RS_PW
+
+#define TPM2_HANDLE                             TPM_HANDLE
+
+#define TSS2_RC_LAYER_MASK                      TSS2_ERROR_LEVEL_MASK
+#endif
 
 /* The PCR index used to seal/unseal the passphrase */
 #define CRYPTFS_TPM2_PCR_INDEX			7
@@ -163,7 +253,7 @@ extern const char *cryptfs_tpm2_build_machine;
 extern int option_quite;
 extern bool option_no_da;
 
-#define TPM_ALG_AUTO		0x4000
+#define TPM2_ALG_AUTO		0x4000
 
 extern int
 cryptfs_tpm2_util_verbose(void);

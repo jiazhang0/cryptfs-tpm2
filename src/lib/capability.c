@@ -49,10 +49,10 @@ capability_read_public(TPMI_DH_OBJECT handle, TPM2B_PUBLIC *public_out)
 	TPMS_CAPABILITY_DATA capability_data;
 
 	UINT32 rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
-					   TPM_CAP_HANDLES, TPM_HT_PERSISTENT,
-          				   TPM_PT_HR_PERSISTENT, &more_data,
+					   TPM2_CAP_HANDLES, TPM2_HT_PERSISTENT,
+					   TPM2_PT_TPM2_HR_PERSISTENT, &more_data,
 					   &capability_data, NULL);
-	if (rc != TPM_RC_SUCCESS) {
+	if (rc != TPM2_RC_SUCCESS) {
 		err("Unable to get the TPM persistent handles (%#x)", rc);
 		return -1;
 	};
@@ -70,13 +70,17 @@ capability_read_public(TPMI_DH_OBJECT handle, TPM2B_PUBLIC *public_out)
         	struct session_complex s;
 		password_session_create(&s, NULL, 0);
 
+#ifndef TSS2_LEGACY_V1
+		TPM2B_NAME name = { sizeof(TPM2B_NAME)-2, };
+		TPM2B_NAME qualified_name = { sizeof(TPM2B_NAME)-2, };
+#else
 		TPM2B_NAME name = { { sizeof(TPM2B_NAME)-2, } };
 		TPM2B_NAME qualified_name = { { sizeof(TPM2B_NAME)-2, } };
-
+#endif
 		rc = Tss2_Sys_ReadPublic(cryptfs_tpm2_sys_context, handle,
 					 NULL, public_out, &name,
 					 &qualified_name, &s.sessionsDataOut);
-		if (rc != TPM_RC_SUCCESS) {
+		if (rc != TPM2_RC_SUCCESS) {
 			err("Unable to read the public area for the "
 			    "persistent handle %#8.8x (%#x)", handle, rc);
 			return -1;
@@ -93,32 +97,32 @@ weight_digest_algorithm(TPMI_ALG_HASH hash_alg)
 {
 	digest_alg_weight_t alg_list[] = {
 		{
-			TPM_ALG_SHA1,
-			SHA1_DIGEST_SIZE
+			TPM2_ALG_SHA1,
+			TPM2_SHA1_DIGEST_SIZE
 		},
 		{
-			TPM_ALG_SHA256,
-			SHA256_DIGEST_SIZE
+			TPM2_ALG_SHA256,
+			TPM2_SHA256_DIGEST_SIZE
 		},
 		{
-			TPM_ALG_SHA384,
-			SHA384_DIGEST_SIZE
+			TPM2_ALG_SHA384,
+			TPM2_SHA384_DIGEST_SIZE
 		},
 		{
-			TPM_ALG_SHA512,
-			SHA512_DIGEST_SIZE
+			TPM2_ALG_SHA512,
+			TPM2_SHA512_DIGEST_SIZE
 		},
 		{
-			TPM_ALG_SM3_256,
-			SM3_256_DIGEST_SIZE + 5
+			TPM2_ALG_SM3_256,
+			TPM2_SM3_256_DIGEST_SIZE + 5
 		},
 		{
-			TPM_ALG_NULL,
+			TPM2_ALG_NULL,
 			0
 		}
 	};
 
-	for (unsigned int i = 0; alg_list[i].alg != TPM_ALG_NULL; ++i) {
+	for (unsigned int i = 0; alg_list[i].alg != TPM2_ALG_NULL; ++i) {
 		if (hash_alg == alg_list[i].alg)
 			return alg_list[i].weight;
 	}
@@ -130,17 +134,17 @@ static unsigned int
 digest_algorithm_base_weight(TPMI_ALG_HASH hash_alg)
 {
 	switch (hash_alg) {
-	case TPM_ALG_SHA1:
+	case TPM2_ALG_SHA1:
 		return 1;
-	case TPM_ALG_SHA256:
+	case TPM2_ALG_SHA256:
 		return 2;
-	case TPM_ALG_SM3_256:
+	case TPM2_ALG_SM3_256:
 		return 3;
-	case TPM_ALG_SHA384:
+	case TPM2_ALG_SHA384:
 		return 7;
-	case TPM_ALG_SHA512:
+	case TPM2_ALG_SHA512:
 		return 9;
-	case TPM_ALG_NULL:
+	case TPM2_ALG_NULL:
 	default:
 		break;
 	}
@@ -149,70 +153,70 @@ digest_algorithm_base_weight(TPMI_ALG_HASH hash_alg)
 }
 
 static const char *
-show_algorithm_name(TPM_ALG_ID alg)
+show_algorithm_name(TPM2_ALG_ID alg)
 {
 	switch (alg) {
-	case TPM_ALG_RSA:
+	case TPM2_ALG_RSA:
 		return "RSA";
-	case TPM_ALG_SHA1:
+	case TPM2_ALG_SHA1:
 		return "SHA-1";
-	case TPM_ALG_HMAC:
+	case TPM2_ALG_HMAC:
 		return "HMAC";
-	case TPM_ALG_AES:
+	case TPM2_ALG_AES:
 		return "AES";
-	case TPM_ALG_MGF1:
+	case TPM2_ALG_MGF1:
 		return "MGF1";
-	case TPM_ALG_KEYEDHASH:
+	case TPM2_ALG_KEYEDHASH:
 		return "KEYEDHASH";
-	case TPM_ALG_XOR:
+	case TPM2_ALG_XOR:
 		return "XOR";
-	case TPM_ALG_SHA256:
+	case TPM2_ALG_SHA256:
 		return "SHA-256";
-	case TPM_ALG_SHA384:
+	case TPM2_ALG_SHA384:
 		return "SHA-384";
-	case TPM_ALG_SHA512:
+	case TPM2_ALG_SHA512:
 		return "SHA-512";
-	case TPM_ALG_NULL:
+	case TPM2_ALG_NULL:
 		return "NULL";
-	case TPM_ALG_SM3_256:
+	case TPM2_ALG_SM3_256:
 		return "SM3-256";
-	case TPM_ALG_SM4:
+	case TPM2_ALG_SM4:
 		return "SM4";
-	case TPM_ALG_RSASSA:
+	case TPM2_ALG_RSASSA:
 		return "RSASSA PKCS#1 v1.5";
-	case TPM_ALG_RSAES:
+	case TPM2_ALG_RSAES:
 		return "RSAES PKCS#1 v1.5";
-	case TPM_ALG_RSAPSS:
+	case TPM2_ALG_RSAPSS:
 		return "RSAES PSS";
-	case TPM_ALG_OAEP:
+	case TPM2_ALG_OAEP:
 		return "RSAES OAEP";
-	case TPM_ALG_ECDSA:
+	case TPM2_ALG_ECDSA:
 		return "ECDSA";
-	case TPM_ALG_ECDH:
+	case TPM2_ALG_ECDH:
 		return "ECC CDH";
-	case TPM_ALG_SM2:
+	case TPM2_ALG_SM2:
 		return "SM2";
-	case TPM_ALG_ECSCHNORR:
+	case TPM2_ALG_ECSCHNORR:
 		return "ECS";
-	case TPM_ALG_KDF1_SP800_56A:
+	case TPM2_ALG_KDF1_SP800_56A:
 		return "KDF1 (NIST SP800-56A)";
-	case TPM_ALG_KDF1_SP800_108:
+	case TPM2_ALG_KDF1_SP800_108:
 		return "KDF1 (NIST SP800-108)";
-	case TPM_ALG_ECC:
+	case TPM2_ALG_ECC:
 		return "ECC";
-	case TPM_ALG_SYMCIPHER:
+	case TPM2_ALG_SYMCIPHER:
 		return "Symmetric block cipher";
-	case TPM_ALG_CTR:
+	case TPM2_ALG_CTR:
 		return "Symmetric block cipher (Counter mode)";
-	case TPM_ALG_OFB:
+	case TPM2_ALG_OFB:
 		return "Symmetric block cipher (Output Feedback mode)";
-	case TPM_ALG_CBC:
+	case TPM2_ALG_CBC:
 		return "Symmetric block cipher (Cipher Block Chaining mode)";
-	case TPM_ALG_CFB:
+	case TPM2_ALG_CFB:
 		return "Symmetric block cipher (Cipher Feedback mode)";
-	case TPM_ALG_ECB:
+	case TPM2_ALG_ECB:
 		return "Symmetric block cipher (Electronic Codebook mode)";
-	case TPM_ALG_ERROR:
+	case TPM2_ALG_ERROR:
 		return NULL;
 	case 0x00c1 ... 0x00c6:
 		return "Reserved (for TPM 1.2 tags conflict)";
@@ -242,9 +246,9 @@ cryptfs_tpm2_capability_digest_algorithm_supported(TPMI_ALG_HASH *hash_alg)
 	UINT32 rc;
 
 	rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
-				    TPM_CAP_ALGS, TPM_PT_NONE, 1, &more_data,
+				    TPM2_CAP_ALGS, TPM2_PT_NONE, 1, &more_data,
 				    &capability_data, NULL);
-	if (rc != TPM_RC_SUCCESS) {
+	if (rc != TPM2_RC_SUCCESS) {
 		err("Unable to get the TPM supported algorithms (%#x)", rc);
 		return false;
 	};
@@ -262,14 +266,18 @@ cryptfs_tpm2_capability_digest_algorithm_supported(TPMI_ALG_HASH *hash_alg)
 	dbg_cont("\n");
 #endif
 
-	TPMI_ALG_HASH preferred_alg = TPM_ALG_NULL;
+	TPMI_ALG_HASH preferred_alg = TPM2_ALG_NULL;
 	unsigned int weight = 0;
 
 	for (i = 0; i < algs->count; ++i) {
 		TPMS_ALG_PROPERTY alg_property = algs->algProperties[i];
 		unsigned alg_weight;
+#ifndef TSS2_LEGACY_V1
+		if (!(alg_property.algProperties & TPMA_ALGORITHM_HASH ))
 
+#else
 		if (alg_property.algProperties.hash != 1)
+#endif
 			continue;
 
 		if (*hash_alg == alg_property.alg)
@@ -282,10 +290,10 @@ cryptfs_tpm2_capability_digest_algorithm_supported(TPMI_ALG_HASH *hash_alg)
 		}
 	}
 
-	if (*hash_alg != TPM_ALG_AUTO)
+	if (*hash_alg != TPM2_ALG_AUTO)
 		return false;
 
-	if (preferred_alg == TPM_ALG_NULL)
+	if (preferred_alg == TPM2_ALG_NULL)
 		return false;
 
 	*hash_alg = preferred_alg;
@@ -301,9 +309,9 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 	UINT32 rc;
 
 	rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
-				    TPM_CAP_PCRS, TPM_PT_NONE, 1, &more_data,
+				    TPM2_CAP_PCRS, TPM2_PT_NONE, 1, &more_data,
 				    &capability_data, NULL);
-	if (rc != TPM_RC_SUCCESS) {
+	if (rc != TPM2_RC_SUCCESS) {
 		err("Unable to get the TPM PCR banks (%#x)", rc);
 		return false;
 	}
@@ -321,7 +329,7 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 	dbg_cont("\n");
 #endif
 
-	TPMI_ALG_HASH preferred_alg = TPM_ALG_NULL;
+	TPMI_ALG_HASH preferred_alg = TPM2_ALG_NULL;
 	unsigned int weight = 0;
 
 	for (i = 0; i < banks->count; ++i) {
@@ -331,7 +339,7 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 		if (*hash_alg == bank_alg)
 			return true;
 
-		if (*hash_alg != TPM_ALG_AUTO)
+		if (*hash_alg != TPM2_ALG_AUTO)
 			continue;
 
 		unsigned int alg_weight;
@@ -347,7 +355,7 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 		rc = cryptfs_tpm2_read_pcr(bank_alg,
 					   CRYPTFS_TPM2_PCR_INDEX,
 					   pcr_value);
-		if (rc != TPM_RC_SUCCESS)
+		if (rc != TPM2_RC_SUCCESS)
 			continue;
 
 		if (is_null_hash(pcr_value, alg_size)) {
@@ -363,10 +371,10 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 		}
 	}
 
-	if (*hash_alg != TPM_ALG_AUTO)
+	if (*hash_alg != TPM2_ALG_AUTO)
 		return false;
 
-	if (preferred_alg == TPM_ALG_NULL)
+	if (preferred_alg == TPM2_ALG_NULL)
 		return false;
 
 	*hash_alg = preferred_alg;
@@ -377,17 +385,17 @@ cryptfs_tpm2_capability_pcr_bank_supported(TPMI_ALG_HASH *hash_alg)
 }
 
 static UINT32
-get_permanent_property(TPM_PT property, UINT32 *value)
+get_permanent_property(TPM2_PT property, UINT32 *value)
 {
 	TPMI_YES_NO more_data;
 	TPMS_CAPABILITY_DATA capability_data;
 	UINT32 rc;
 
 	rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
-				    TPM_CAP_TPM_PROPERTIES, property,
+				    TPM2_CAP_TPM_PROPERTIES, property,
 				    1, &more_data,
 				    &capability_data, NULL);
-	if (rc != TPM_RC_SUCCESS) {
+	if (rc != TPM2_RC_SUCCESS) {
 		err("Unable to get the TPM properties (%#x)", rc);
 		return rc;
 	}
@@ -408,7 +416,7 @@ get_permanent_property(TPM_PT property, UINT32 *value)
 
 	*value = tagged_property->value;
 
-	return TPM_RC_SUCCESS;
+	return TPM2_RC_SUCCESS;
 }
 
 int
@@ -420,9 +428,14 @@ cryptfs_tpm2_capability_in_lockout(bool *in_lockout)
 	TPMA_PERMANENT attrs;
 	UINT32 rc;
 
-	rc = get_permanent_property(TPM_PT_PERMANENT, (UINT32 *)&attrs);
-	if (rc == TPM_RC_SUCCESS) {
+	rc = get_permanent_property(TPM2_PT_PERMANENT, (UINT32 *)&attrs);
+	if (rc == TPM2_RC_SUCCESS) {
+#ifndef TSS2_LEGACY_V1
+
+		*in_lockout = !!(attrs & TPMA_PERMANENT_INLOCKOUT);
+#else
 		*in_lockout = !!attrs.inLockout;
+#endif
 		return EXIT_SUCCESS;
 	}
 
@@ -438,9 +451,14 @@ cryptfs_tpm2_capability_lockout_auth_required(bool *required)
 	TPMA_PERMANENT attrs;
 	UINT32 rc;
 
-	rc = get_permanent_property(TPM_PT_PERMANENT, (UINT32 *)&attrs);
-	if (rc == TPM_RC_SUCCESS) {
+	rc = get_permanent_property(TPM2_PT_PERMANENT, (UINT32 *)&attrs);
+	if (rc == TPM2_RC_SUCCESS) {
+#ifndef TSS2_LEGACY_V1
+
+		*required = !!(attrs & TPMA_PERMANENT_LOCKOUTAUTHSET);
+#else
 		*required = !!attrs.lockoutAuthSet;
+#endif
 		return EXIT_SUCCESS;
 	}
 
@@ -456,9 +474,14 @@ cryptfs_tpm2_capability_owner_auth_required(bool *required)
 	TPMA_PERMANENT attrs;
 	UINT32 rc;
 
-	rc = get_permanent_property(TPM_PT_PERMANENT, (UINT32 *)&attrs);
-	if (rc == TPM_RC_SUCCESS) {
+	rc = get_permanent_property(TPM2_PT_PERMANENT, (UINT32 *)&attrs);
+	if (rc == TPM2_RC_SUCCESS) {
+#ifndef TSS2_LEGACY_V1
+
+		*required = !!(attrs & TPMA_PERMANENT_OWNERAUTHSET);
+#else
 		*required = !!attrs.ownerAuthSet;
+#endif
 		return EXIT_SUCCESS;
 	}
 
@@ -474,9 +497,9 @@ cryptfs_tpm2_capability_da_disabled(bool *disabled)
 	UINT32 recovery_time;
 	UINT32 rc;
 
-	rc = get_permanent_property(TPM_PT_LOCKOUT_INTERVAL,
+	rc = get_permanent_property(TPM2_PT_LOCKOUT_INTERVAL,
 				    &recovery_time);
-	if (rc == TPM_RC_SUCCESS) {
+	if (rc == TPM2_RC_SUCCESS) {
 		bool enforced;
 
 		rc = cryptfs_tpm2_capability_lockout_enforced(&enforced);
@@ -516,9 +539,9 @@ cryptfs_tpm2_capability_get_lockout_counter(UINT32 *counter)
 
 	UINT32 rc;
 
-	rc = get_permanent_property(TPM_PT_LOCKOUT_COUNTER,
+	rc = get_permanent_property(TPM2_PT_LOCKOUT_COUNTER,
 				    counter);
-	if (rc == TPM_RC_SUCCESS)
+	if (rc == TPM2_RC_SUCCESS)
 		return EXIT_SUCCESS;
 
 	return EXIT_FAILURE;
@@ -532,9 +555,9 @@ cryptfs_tpm2_capability_get_max_tries(UINT32 *max_tries)
 
 	UINT32 rc;
 
-	rc = get_permanent_property(TPM_PT_MAX_AUTH_FAIL,
+	rc = get_permanent_property(TPM2_PT_MAX_AUTH_FAIL,
 				    max_tries);
-	if (rc == TPM_RC_SUCCESS)
+	if (rc == TPM2_RC_SUCCESS)
 		return EXIT_SUCCESS;
 
 	return EXIT_FAILURE;
@@ -548,9 +571,9 @@ cryptfs_tpm2_capability_get_lockout_recovery(UINT32 *recovery)
 
 	UINT32 rc;
 
-	rc = get_permanent_property(TPM_PT_LOCKOUT_RECOVERY,
+	rc = get_permanent_property(TPM2_PT_LOCKOUT_RECOVERY,
 				    recovery);
-	if (rc == TPM_RC_SUCCESS)
+	if (rc == TPM2_RC_SUCCESS)
 		return EXIT_SUCCESS;
 
 	return EXIT_FAILURE;
