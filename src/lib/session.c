@@ -38,6 +38,10 @@
 static void
 complete_session_complex(struct session_complex *s)
 {
+#ifndef TSS2_LEGACY_V1
+	s->sessionsData.count = 1;
+	s->sessionsDataOut.count = 1;
+#else
 	s->sessionDataArray[0] = &s->sessionData;
 	s->sessionsData.cmdAuthsCount = 1;
 	s->sessionsData.cmdAuths = s->sessionDataArray;
@@ -45,12 +49,26 @@ complete_session_complex(struct session_complex *s)
 	s->sessionDataOutArray[0] = &s->sessionDataOut;
 	s->sessionsDataOut.rspAuthsCount = 1;
 	s->sessionsDataOut.rspAuths = s->sessionDataOutArray;
+#endif
 }
 
 static void
 set_session_auth(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
 		 void *auth_password, size_t auth_password_size)
 {
+#ifndef TSS2_LEGACY_V1
+	session->sessionHandle = handle;
+	session->nonce.size = 0;
+	*((UINT8 *)((void *)&session->sessionAttributes)) = 0;
+	session->sessionAttributes |= TPMA_SESSION_CONTINUESESSION;
+
+	if (auth_password && auth_password_size) {
+		session->hmac.size = auth_password_size;
+		memcpy(session->hmac.buffer, auth_password,
+		       session->hmac.size);
+	} else
+		session->hmac.size = 0;
+#else
 	session->sessionHandle = handle;
 	session->nonce.t.size = 0;
 	*((UINT8 *)((void *)&session->sessionAttributes)) = 0;
@@ -62,6 +80,8 @@ set_session_auth(TPMS_AUTH_COMMAND *session, TPMI_SH_AUTH_SESSION handle,
 		       session->hmac.t.size);
 	} else
 		session->hmac.t.size = 0;
+
+#endif
 }
 
 static void
