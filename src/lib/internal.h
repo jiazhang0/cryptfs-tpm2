@@ -35,8 +35,28 @@
 #define __INTERNAL_H__
 
 #include <cryptfs_tpm2.h>
-
+#ifndef TSS2_LEGACY_V1
+#include <tss2_sys.h>
+#endif
 #include "tpm2_rc.h"
+
+#ifndef TSS2_LEGACY_V1
+#define TPM2B_SIZE(type) (sizeof (type) - 2)
+#define TPM2B_NAMED_INIT(type, field) \
+	    { \
+		            .size = TPM2B_SIZE (type), \
+		            .field = { 0 } \
+		        }
+#define TPM2B_DIGEST_INIT TPM2B_NAMED_INIT (TPM2B_DIGEST, buffer)
+#define TPM2B_NAME_INIT TPM2B_NAMED_INIT (TPM2B_NAME, name)
+#define TPM2B_PRIVATE_INIT TPM2B_NAMED_INIT (TPM2B_PRIVATE, buffer)
+
+#define TPM2B_MAX_BUFFER_INIT { .size = TPM2_MAX_DIGEST_BUFFER }
+#define TPM2B_IV_INIT { .size = TPM2_MAX_SYM_BLOCK_SIZE }
+
+#define BUFFER_SIZE(type, field) (sizeof((((type *)NULL)->t.field)))
+#define TPM2B_TYPE_INIT(type, field) { .size = BUFFER_SIZE(type, field), }
+#endif
 
 struct session_complex {
 	TPMI_SH_AUTH_SESSION session_handle;
@@ -66,7 +86,7 @@ password_session_create(struct session_complex *s, char *auth_password,
 			unsigned int auth_password_size);
 
 int
-policy_session_create(struct session_complex *s, TPM_SE type,
+policy_session_create(struct session_complex *s, TPM2_SE type,
                       TPMI_ALG_HASH hash_alg);
 
 void
