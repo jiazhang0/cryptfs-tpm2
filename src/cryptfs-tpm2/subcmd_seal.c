@@ -36,7 +36,7 @@
 static bool opt_setup_key;
 static bool opt_setup_passphrase;
 static char *opt_passphrase;
-static TPMI_ALG_HASH opt_pcr_bank_alg = TPM_ALG_NULL;
+static TPMI_ALG_HASH opt_pcr_bank_alg = TPM2_ALG_NULL;
 
 static void
 show_usage(char *prog)
@@ -73,17 +73,17 @@ parse_arg(int opt, char *optarg)
 		break;
 	case 'P':
 		if (!strcasecmp(optarg, "sha1"))
-			opt_pcr_bank_alg = TPM_ALG_SHA1;
+			opt_pcr_bank_alg = TPM2_ALG_SHA1;
 		else if (!strcasecmp(optarg, "sha256"))
-			opt_pcr_bank_alg = TPM_ALG_SHA256;
+			opt_pcr_bank_alg = TPM2_ALG_SHA256;
 		else if (!strcasecmp(optarg, "sha384"))
-			opt_pcr_bank_alg = TPM_ALG_SHA384;
+			opt_pcr_bank_alg = TPM2_ALG_SHA384;
 		else if (!strcasecmp(optarg, "sha512"))
-			opt_pcr_bank_alg = TPM_ALG_SHA512;
+			opt_pcr_bank_alg = TPM2_ALG_SHA512;
 		else if (!strcasecmp(optarg, "sm3_256"))
-			opt_pcr_bank_alg = TPM_ALG_SM3_256;
+			opt_pcr_bank_alg = TPM2_ALG_SM3_256;
 		else if (!strcasecmp(optarg, "auto"))
-			opt_pcr_bank_alg = TPM_ALG_AUTO;
+			opt_pcr_bank_alg = TPM2_ALG_AUTO;
 		else {
 			err("Unrecognized PCR bank algorithm\n");
 			return -1;
