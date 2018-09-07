@@ -61,9 +61,15 @@
 
 #include <subcommand.h>
 
+#ifndef TSS2_LEGACY_V1
+#include <tss2_tcti_mssim.h>
+#include <tss2_tcti_device.h>
+#include <tss2-tcti-tabrmd.h>
+#else
 #include <tcti/tcti_socket.h>
 #include <tcti/tcti_device.h>
 #include <tcti/tcti-tabrmd.h>
+#endif
 
 #define stringify(x)			#x
 
