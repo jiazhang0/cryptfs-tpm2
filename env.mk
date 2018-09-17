@@ -1,6 +1,7 @@
 CROSS_COMPILE ?=
 CC := $(CROSS_COMPILE)gcc
 LD := $(CROSS_COMPILE)ld
+CCLD := $(CROSS_COMPILE)gcc
 AR := $(CROSS_COMPILE)ar
 INSTALL ?= install
 PKG_CONFIG ?= pkg-config

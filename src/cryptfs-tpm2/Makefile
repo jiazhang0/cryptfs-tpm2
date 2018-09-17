@@ -13,7 +13,7 @@ OBJS_$(BIN_NAME) := \
 all: $(BIN_NAME) Makefile
 
 $(BIN_NAME): $(OBJS_$(BIN_NAME)) $(TOPDIR)/src/lib/$(LIB_NAME).so
-	$(CC) $^ -o $@ $(CFLAGS)
+	$(CCLD) $^ -o $@ $(CFLAGS)
 
 clean:
 	@$(RM) $(OBJS_$(BIN_NAME)) $(BIN_NAME)

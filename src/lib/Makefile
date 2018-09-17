@@ -44,7 +44,7 @@ install: all
 		ln -sfn $(x).$(MAJOR_VERSION).$(MINOR_VERSION) $(DESTDIR)$(LIBDIR)/$(patsubst %,%.$(MAJOR_VERSION),$(x));)
 
 $(LIB_NAME).so: $(OBJS_$(LIB_NAME))
-	$(CC) $^ -o $@ $(CFLAGS) -shared -Wl,-soname,$(patsubst %.$(VERSION),%,$@)
+	$(CCLD) $^ -o $@ $(CFLAGS) -shared -Wl,-soname,$(patsubst %.$(VERSION),%,$@)
 
 $(LIB_NAME).a: $(filter-out init.o,$(OBJS_$(LIB_NAME)))
 	$(AR) rcs $@ $^
