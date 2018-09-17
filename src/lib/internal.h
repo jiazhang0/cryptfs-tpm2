@@ -36,7 +36,7 @@
 
 #include <cryptfs_tpm2.h>
 #ifndef TSS2_LEGACY_V1
-#include <tss2_sys.h>
+#include <tss2/tss2_sys.h>
 #endif
 #include "tpm2_rc.h"
 
