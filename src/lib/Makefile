@@ -40,11 +40,11 @@ install: all
 	$(INSTALL) -d -m 755 $(DESTDIR)$(LIBDIR)
 	$(INSTALL) -m 755 $(LIB_NAME).a $(DESTDIR)$(LIBDIR)
 	$(INSTALL) -m 755 $(LIB_NAME).so $(DESTDIR)$(LIBDIR)/$(LIB_NAME).so.$(VERSION)
-	$(foreach x, $(LIB_NAME).so, ln -sfn $(x).$(VERSION) $(DESTDIR)$(LIBDIR)/$(patsubst %,%.$(MAJOR_VERSION).$(MINOR_VERSION),$(x)); \
-		ln -sfn $(x).$(MAJOR_VERSION).$(MINOR_VERSION) $(DESTDIR)$(LIBDIR)/$(patsubst %,%.$(MAJOR_VERSION),$(x));)
+	$(foreach x, $(LIB_NAME), ln -sfn $(x).so.$(VERSION) $(DESTDIR)$(LIBDIR)/$(patsubst %,%.so.$(MAJOR_VERSION),$(x)); \
+		ln -sfn $(x).so.$(VERSION) $(DESTDIR)$(LIBDIR)/$(patsubst %,%.so,$(x));)
 
 $(LIB_NAME).so: $(OBJS_$(LIB_NAME))
-	$(CCLD) $^ -o $@ $(CFLAGS) -shared -Wl,-soname,$(patsubst %.$(VERSION),%,$@)
+	$(CCLD) $^ -o $@ $(CFLAGS) -shared -Wl,-soname,$(patsubst %,%.$(MAJOR_VERSION),$@)
 
 $(LIB_NAME).a: $(filter-out init.o,$(OBJS_$(LIB_NAME)))
 	$(AR) rcs $@ $^
