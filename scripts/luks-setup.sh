@@ -402,7 +402,7 @@ if [ $OPT_NO_TPM -eq 0 ]; then
     detect_tpm
     if [ $? -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
-            cmd="tpm2_takeownership --clear"
+            cmd="tpm2_clear"
             [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --oldLockPasswd $OPT_OLD_LOCKOUT_AUTH"
             [ -n "$OPT_LOCKOUT_AUTH" ] && cmd="${cmd} --LockPasswd $OPT_LOCKOUT_AUTH"
             eval "$cmd"
