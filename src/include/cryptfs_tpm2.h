@@ -152,7 +152,7 @@
 
 #define TPM2_PT                                 TPM_PT
 #define TPM2_PT_NONE                            TPM_PT_NONE
-#define TPM2_PT_HR_PERSISTENT                   TPM_PT_HR_PERSISTENT
+#define TPM2_PT_TPM2_HR_PERSISTENT              TPM_PT_HR_PERSISTENT
 #define TPM2_PT_LOCKOUT_INTERVAL                TPM_PT_LOCKOUT_INTERVAL
 #define TPM2_PT_LOCKOUT_COUNTER                 TPM_PT_LOCKOUT_COUNTER
 #define TPM2_PT_MAX_AUTH_FAIL                   TPM_PT_MAX_AUTH_FAIL
