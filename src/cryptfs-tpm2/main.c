@@ -40,7 +40,6 @@ show_banner(void)
 	info_cont("(C)Copyright 2016-2017, Wind River Systems, Inc.\n");
 	info_cont("Version: %s+git-%s\n", VERSION, cryptfs_tpm2_git_commit);
 	info_cont("Build Machine: %s\n", cryptfs_tpm2_build_machine);
-	info_cont("Build Time: " __DATE__ " " __TIME__ "\n\n");
 }
 
 static void
