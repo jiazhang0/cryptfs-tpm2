@@ -248,7 +248,6 @@
 	fprintf(stderr, fmt, ##__VA_ARGS__)
 
 extern const char *cryptfs_tpm2_git_commit;
-extern const char *cryptfs_tpm2_build_machine;
 extern int option_quite;
 extern bool option_no_da;
 
