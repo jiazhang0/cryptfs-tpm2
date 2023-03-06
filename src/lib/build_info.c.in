@@ -34,4 +34,3 @@
 #include <cryptfs_tpm2.h>
 
 const char *cryptfs_tpm2_git_commit = "@@CRYPTFS_TPM2_GIT_COMMIT@@";
-const char *cryptfs_tpm2_build_machine = "@@CRYPTFS_TPM2_BUILD_MACHINE@@";
