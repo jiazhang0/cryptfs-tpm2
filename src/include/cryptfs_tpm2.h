@@ -64,7 +64,6 @@
 #ifndef TSS2_LEGACY_V1
 #include <tss2/tss2_tcti_mssim.h>
 #include <tss2/tss2_tcti_device.h>
-#include <tss2/tss2-tcti-tabrmd.h>
 #else
 #include <tcti/tcti_socket.h>
 #include <tcti/tcti_device.h>

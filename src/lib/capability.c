@@ -50,7 +50,7 @@ capability_read_public(TPMI_DH_OBJECT handle, TPM2B_PUBLIC *public_out)
 
 	UINT32 rc = Tss2_Sys_GetCapability(cryptfs_tpm2_sys_context, NULL,
 					   TPM2_CAP_HANDLES, TPM2_HT_PERSISTENT,
-					   TPM2_PT_HR_PERSISTENT, &more_data,
+					   TPM2_HR_PERSISTENT, &more_data,
 					   &capability_data, NULL);
 	if (rc != TPM2_RC_SUCCESS) {
 		err("Unable to get the TPM persistent handles (%#x)", rc);
