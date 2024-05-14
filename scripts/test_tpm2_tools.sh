@@ -93,10 +93,9 @@ function create_passphrase()
 	[ $? != 0 ] && echo "Unable to generate the passphrase" && exit 4
 
 	echo "Sealing the passphrase ..."
-	tpm2_create --hash-algorithm=$hash_alg --key-algorithm=$key_alg \
-	  --parent-context="$PRI_KEY_HANDLE" \
-          --parent-auth="$PRI_KEY_SECRET" --key-auth="$PASS_SECRET" \
-          --public="$PASS_PUB_BLOB" --private="$PASS_PRIV_BLOB" \
+	tpm2_create --hash-algorithm=$hash_alg --parent-context="$PRI_KEY_HANDLE" \
+	  --sealing-input="$PASS" --parent-auth="$PRI_KEY_SECRET" \
+	  --key-auth="$PASS_SECRET" --public="$PASS_PUB_BLOB" --private="$PASS_PRIV_BLOB" \
 	  --key-context="$PASS_CONTEXT_BLOB"
 	[ $? != 0 ] && echo "Unable to create the sealed passphrase" && exit 5
 
