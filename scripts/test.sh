@@ -180,3 +180,4 @@ cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
 }
 
 tpm2_changeauth --object-context=lockout --object-auth=lockout >>$log 2>&1
+tpm2_changeauth --object-context=owner --object-auth=owner >>$log 2>&1
