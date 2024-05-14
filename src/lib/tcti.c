@@ -99,7 +99,7 @@ TSS2_TCTI_CONTEXT *
 init_tcti_device(void)
 {
 #ifndef TSS2_LEGACY_V1
-	const char *cfg = "/dev/tpm0";
+	const char *cfg = "/dev/tpmrm0";
 #else
 	TCTI_DEVICE_CONF cfg = {
 		.device_path = "/dev/tpm0",
@@ -190,7 +190,11 @@ cryptfs_tpm2_tcti_init_context(void)
 
 	tcti_str = getenv("TSS2_TCTI");
 	if (!tcti_str) {
+#ifndef TSS2_LEGACY_V1
+		tcti_str = "device";
+#else
 		tcti_str = "tabrmd";
+#endif
 
 		info("Use %s as the default tcti interface\n", tcti_str);
 	}
