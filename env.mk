@@ -11,8 +11,8 @@ EXTRA_LDFLAGS ?=
 
 DEBUG_BUILD ?=
 TSS2_VER ?= 2
-prefix ?= /usr/local
-libdir ?= $(prefix)/lib
+prefix ?= /usr
+libdir ?= $(prefix)/lib64
 sbindir ?= $(prefix)/sbin
 includedir ?= $(prefix)/include
 
