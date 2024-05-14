@@ -36,7 +36,7 @@
 
 function check_ownership()
 {
-	tpm2_takeownership -c
+	tpm2_changeauth --object-context=owner
 	[ $? != 0 ] && echo "TPM is not clear" && exit 1
 }
 
@@ -118,10 +118,11 @@ echo -n "[*] testing object generation with auto PCR bank ... "
 test_all auto >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
 
 echo -n "[*] testing DA recovery ... "
-tpm2_takeownership --clear >>$log 2>&1
-tpm2_takeownership --ownerPasswd owner --lockPasswd lockout >>$log 2>&1
-tpm2_dictionarylockout --lockout-passwd lockout --clear-lockout >>$log 2>&1
-tpm2_dictionarylockout --lockout-passwd lockout --setup-parameters \
+tpm2_changeauth --object-context=owner >>$log 2>&1
+tpm2_changeauth --object-context=owner owner >>$log 2>&1
+tpm2_changeauth --object-context=lockout lockout >>$log 2>&1
+tpm2_dictionarylockout --auth=lockout --clear-lockout >>$log 2>&1
+tpm2_dictionarylockout --auth=lockout --setup-parameters \
     --max-tries 1 \
     --recovery-time 30 \
     --lockout-recovery-time 60 >>$log 2>&1
@@ -178,4 +179,4 @@ cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
     }
 }
 
-tpm2_takeownership --clear --oldLockPasswd lockout >>$log 2>&1
+tpm2_changeauth --object-context=lockout --object-auth=lockout >>$log 2>&1
