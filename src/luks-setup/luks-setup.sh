@@ -243,6 +243,21 @@ unmap_luks_volume() {
         cryptsetup luksClose "$luks_name" || true
 }
 
+check_dependencies() {
+    pkg=("cryptsetup" "tpm2-tss" "tpm2-tools")
+
+    for p in "${pkg[@]}"; do
+        rpm -q "$p" >/dev/null 2>&1 || {
+            print_info "Installing the package \"$p\" ..."
+
+            yum install -y $p || {
+                print_error "Failed to install the package \"$p\""
+                exit 1
+            }
+        }
+    done
+}
+
 option_check() {
     if [ -z "$1" ] || echo "$1" | grep -q "^-"; then
         print_error "No value specified for the option $arg"
@@ -384,6 +399,8 @@ done
 trap 'trap_handler $LINENO $?' SIGINT EXIT ERR
 
 OPT_LUKS_NAME="${OPT_LUKS_NAME:-$DEFAULT_ENCRYPTION_NAME}"
+
+check_dependencies
 
 #### Handle OPT_NO_SETUP=1 ####
 if [ $OPT_NO_SETUP -eq 1 ] && [ $OPT_UNMAP_LUKS -eq 1 ]; then
