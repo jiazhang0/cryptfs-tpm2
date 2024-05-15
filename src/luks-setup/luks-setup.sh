@@ -258,6 +258,26 @@ check_dependencies() {
     done
 }
 
+prompt_info() {
+    echo
+    print_critical "******************************************************************"
+    print_critical "The primary key and passphrase previously created will be wiped,"
+    print_critical "so the data protected by them cannot be restored any more!!!"
+    print_critical "Make sure you know what to do before confirming current operation."
+    print_critical "******************************************************************"
+    echo
+
+    read -p "Do you wish to continue? [y/n] " -n 1
+    echo
+
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Installation cancelled"
+        exit 0
+    else
+        print_info "Installation confirmed"
+    fi
+}
+
 option_check() {
     if [ -z "$1" ] || echo "$1" | grep -q "^-"; then
         print_error "No value specified for the option $arg"
@@ -450,28 +470,12 @@ if is_luks_volume "$OPT_LUKS_DEV"; then
     print_info "Enforce creating the LUKS volume"
 fi
 
-echo
-print_critical "******************************************************************"
-print_critical "The primary key and passphrase previously created will be wiped,"
-print_critical "so the data protected by them cannot be restored any more!!!"
-print_critical "Make sure you know what to do before confirming current operation."
-print_critical "******************************************************************"
-echo
-
-read -p "Do you wish to continue? [y/n] " -n 1
-echo
-
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    print_info "Installation cancelled"
-    exit 0
-else
-    print_info "Installation confirmed"
-fi
-
 if [ $OPT_NO_TPM -eq 0 ]; then
     detect_tpm
     if [ $? -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
+            prompt_info
+
             cmd="tpm2_changeauth -c lockout"
             [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --object-auth=$OPT_OLD_LOCKOUT_AUTH"
             eval "$cmd"
