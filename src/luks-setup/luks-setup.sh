@@ -208,6 +208,11 @@ create_luks_volume() {
                 ! cryptfs-tpm2 -q seal all $pcr_opt &&
                     print_error "Unable to seal the primary key and passphrase" &&
                     exit 1
+
+                ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$tmp_dir/passphrase" &&
+                    print_error "Unable to unseal the passphrase" && return 1;
+
+                passphrase="$tmp_dir/passphrase"
             }
     fi
 
