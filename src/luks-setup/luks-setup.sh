@@ -89,7 +89,7 @@ trap_handler() {
     [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
     unset TPM2TOOLS_DEVICE_FILE TPM2TOOLS_TCTI_NAME TSS2_TCTI
 
-    if [ $err -ne 0 ] ; then
+    if [ "$err" != "0" ] && [ "$line_no" != "1" ]; then
         print_error "Error occurred on line $line_no, exit code: $err"
     fi
 
@@ -139,7 +139,7 @@ detect_tpm() {
 
     export TPM2TOOLS_TCTI_NAME TSS2_TCTI TPM2TOOLS_TCTI
 
-    print_info "TPM 2.0 device $dev detected"
+    print_info "TPM 2.0 device \"$dev\" detected"
 
     return 0
 }
@@ -231,7 +231,7 @@ map_luks_volume() {
     [ "$tpm_absent" = "0" ] && passphrase="$4/passphrase"
 
     ! cryptsetup luksOpen --key-file "$passphrase" "$luks_dev" "$luks_name" &&
-        print_error "Unable to map the LUKS volume $luks_name" && return 1
+        print_error "Unable to map the LUKS volume \"$luks_name\"" && return 1
 
     return 0
 }
@@ -239,7 +239,7 @@ map_luks_volume() {
 unmap_luks_volume() {
     local luks_name="$1"
 
-    [ -e "/dev/mapper/$luks_name" ] && print_info "Unmapping the LUKS volume $luks_name ..." &&
+    [ -e "/dev/mapper/$luks_name" ] && print_info "Unmapping the LUKS volume \"$luks_name\" ..." &&
         cryptsetup luksClose "$luks_name" || true
 }
 
@@ -386,26 +386,31 @@ trap 'trap_handler $LINENO $?' SIGINT EXIT ERR
 OPT_LUKS_NAME="${OPT_LUKS_NAME:-$DEFAULT_ENCRYPTION_NAME}"
 
 #### Handle OPT_NO_SETUP=1 ####
-if [ $OPT_NO_SETUP -eq 1 ] && [ $OPT_UNMAP_LUKS -eq 1 ] ; then
+if [ $OPT_NO_SETUP -eq 1 ] && [ $OPT_UNMAP_LUKS -eq 1 ]; then
     unmap_luks_volume "$OPT_LUKS_NAME"
     exit 0
 fi
 
-[ x"$OPT_LUKS_DEV" = x"" ] && print_error "LUKS device is not specified" &&
-    exit 1
+[ x"$OPT_LUKS_DEV" = x"" ] && {
+    print_error "LUKS device is not specified" && exit 1
+} || {
+    [ ! -e "$OPT_LUKS_DEV" ] && {
+        print_error "Invalid LUKS device specified" && exit 1
+    } || true
+}
 
 TEMP_DIR=`mktemp -d /dev/luks-setup.XXXXXX`
 print_verbose "Temporary directory created: $TEMP_DIR"
 [ ! -d "$TEMP_DIR" ] && print_error "Failed to create the temporary directory" &&
     exit 1
 
-if [ $OPT_NO_SETUP -eq 1 ] ; then
+if [ $OPT_NO_SETUP -eq 1 ]; then
     if ! is_luks_volume "$OPT_LUKS_DEV"; then
         print_info "$OPT_LUKS_DEV is not a LUKS volume"
         exit 1
     fi
 
-    if [ $OPT_NO_TPM -eq 0 ] ; then
+    if [ $OPT_NO_TPM -eq 0 ]; then
 	detect_tpm
 	[ $? -eq 0 ] && {
             TPM_ABSENT=0
@@ -504,4 +509,4 @@ fi
 
 [ $OPT_UNMAP_LUKS -eq 1 ] && unmap_luks_volume "$OPT_LUKS_NAME"
 
-print_info "The LUKS volume $OPT_LUKS_NAME is created on $OPT_LUKS_DEV"
+print_info "The LUKS volume \"$OPT_LUKS_NAME\" is created on $OPT_LUKS_DEV"
