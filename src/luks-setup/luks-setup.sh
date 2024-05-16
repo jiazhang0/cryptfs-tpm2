@@ -326,10 +326,10 @@ check_dependencies() {
         if ! rpm -q "$p" >/dev/null 2>&1; then
             print_info "Installing the package \"$p\" ..."
 
-            local err=`yum install -y "$p"`
-            if [ $err -ne 0 ]; then
+            yum install -y "$p"
+            if [ $? -ne 0 ]; then
                 print_error "Failed to install the package \"$p\""
-                exit $err
+                exit 1
             fi
         fi
     done
