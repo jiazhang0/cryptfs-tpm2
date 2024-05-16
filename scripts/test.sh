@@ -123,6 +123,8 @@ detect_pcrs
 
 evict_all >/dev/null 2>&1
 
+tpm2_flushcontext --transient-object
+
 log=`mktemp /tmp/cryptfs-tpm2-test-log-XXXX`
 echo "The testing log is placed at $log"
 
