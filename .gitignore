@@ -9,3 +9,4 @@ src/lib/secret.c
 scripts/encrypt_secret.py
 *.patch
 *.swp
+*.swo
