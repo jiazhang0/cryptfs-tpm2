@@ -47,7 +47,7 @@ DEFAULT_ENCRYPTION_NAME="${DEFAULT_ENCRYPTION_NAME:-luks_volume}"
 TPM_ABSENT=1
 USE_CBMKPASSWD=0
 TEMP_DIR=""
-PASSPHRASE-"-"
+PASSPHRASE="-"
 
 print_critical() {
     printf "\033[1;35m"
@@ -318,11 +318,11 @@ unmap_luks_volume() {
 }
 
 check_dependencies() {
-    local pkg=("cryptsetup" "tpm2-tss" "tpm2-tools")
+    local pkgs=("cryptsetup" "tpm2-tss" "tpm2-tools")
 
     print_info "Checking the dependencies ..."
 
-    for p in "${pkg[@]}"; do
+    for p in "${pkgs[@]}"; do
         if ! rpm -q "$p" >/dev/null 2>&1; then
             print_info "Installing the package \"$p\" ..."
 
