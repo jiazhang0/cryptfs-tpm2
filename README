@@ -38,6 +38,12 @@ Installation
 $ sudo make install
 $ sudo ldconfig
 
+Release
+------------
+$ ./release.sh
+
+The RPM package will be built into the `release` dir under current dir.
+
 Help
 ----
 - For the available options and sub-commands:
