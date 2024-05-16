@@ -45,7 +45,9 @@ VERSION="0.1.0"
 RESOURCEMGR_STARTED=0
 DEFAULT_ENCRYPTION_NAME="${DEFAULT_ENCRYPTION_NAME:-luks_volume}"
 TPM_ABSENT=1
+USE_CBMKPASSWD=0
 TEMP_DIR=""
+PASSPHRASE-"-"
 
 print_critical() {
     printf "\033[1;35m"
@@ -220,9 +222,24 @@ configure_tpm() {
 }
 
 unseal_passphrase() {
-    local passphrase=$1
     local err=0
-    local pcr_opt=""
+
+    if [ $USE_CBMKPASSWD -eq 1 ]; then
+        PASSPHRASE="$TEMP_DIR/passphrase"
+
+        if ! cbmkpasswd -o "$PASSPHRASE"; then
+            print_error "Unable to derive the passphrase with cbmkpasswd"
+            exit 1
+        fi
+
+        print_verbose "Succeed to derive the passphrase with cbmkpasswd"
+
+        return 0
+    fi
+
+    [ $TPM_ABSENT -eq 1 ] && return 0
+
+    PASSPHRASE="$TEMP_DIR/passphrase"
 
     if [ x"$TPM2TOOLS_TCTI_NAME" = x"abrmd" ]; then
         RESOURCEMGR_STARTED=1
@@ -230,15 +247,15 @@ unseal_passphrase() {
         err=$?
     fi
 
-    if [ $err -eq 0 ]; then
-        if [ $OPT_USE_PCR -eq 1 ]; then
-            pcr_opt="-P auto"
-        fi
+    local pcr_opt=""
 
-        ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$passphrase" &&
-	    print_error "Unable to unseal the passphrase" && return 1
+    if [ $err -eq 0 ]; then
+        [ $OPT_USE_PCR -eq 1 ] && pcr_opt="-P auto"
+
+        ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$PASSPHRASE" &&
+	    print_error "Unable to unseal the passphrase" && exit 1
     else
-	print_error "Unable to contact the resource manager" && return 1
+	print_error "Unable to contact the resource manager" && exit 1
     fi
 
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
@@ -253,22 +270,14 @@ is_luks_volume() {
 create_luks_volume() {
     local luks_dev="$1"
     local luks_name="$2"
-    local passphrase="-"
+    local passphrase
 
     print_info "Creating the LUKS volume \"$luks_name\" ..."
 
-    if [ $TPM_ABSENT -eq 0 ]; then
-        local pcr_opt=""
-
-        [ $OPT_USE_PCR -eq 1 ] && pcr_opt="-P auto"
-
-        passphrase="$TEMP_DIR/passphrase"
-        ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$passphrase" &&
-            print_error "Unable to unseal the passphrase" && return 1;
-    fi
+    unseal_passphrase
 
     if ! cryptsetup --type luks --cipher aes-xts-plain --hash sha256 \
-        --use-random --key-file "$passphrase" luksFormat "$luks_dev"; then
+          --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev"; then
         print_error "Unable to create the LUKS volume on $luks_dev"
         return 1
     fi
@@ -277,7 +286,6 @@ create_luks_volume() {
 map_luks_volume() {
     local luks_dev="$1"
     local luks_name="$2"
-    local passphrase="-"
 
     if [ -e "/dev/mapper/$luks_name" ]; then
         print_verbose "The LUKS volume \"$luks_name\" already mapped"
@@ -286,13 +294,9 @@ map_luks_volume() {
 
     print_info "Mapping the LUKS volume \"$luks_name\" ..."
 
-    if [ $TPM_ABSENT -eq 0 ]; then
-        passphrase="$TEMP_DIR/passphrase"
+    unseal_passphrase
 
-        ! unseal_passphrase "$passphrase" && exit 1
-    fi
-
-    if ! cryptsetup luksOpen --key-file "$passphrase" "$luks_dev" "$luks_name"; then
+    if ! cryptsetup luksOpen --key-file "$PASSPHRASE" "$luks_dev" "$luks_name"; then
         print_error "Unable to map the LUKS volume \"$luks_name\""
         return 1
     fi
@@ -329,6 +333,8 @@ check_dependencies() {
             fi
         fi
     done
+
+    which cbmkpasswd >/dev/null 2>&1 && USE_CBMKPASSWD=1
 
     print_verbose "The dependencies satisfied"
 }
@@ -520,6 +526,7 @@ fi
 if [ $OPT_NO_TPM -eq 0 ]; then
     if detect_tpm; then
         TPM_ABSENT=0
+        USE_CBMKPASSWD=0
 
         ! configure_tpm && exit 1
     fi
