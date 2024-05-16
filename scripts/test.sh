@@ -2,7 +2,8 @@
 
 # Cryptfs-TPM2 testing script
 #
-# Copyright (c) 2016-2017, Wind River Systems, Inc.
+# Copyright (c) 2024, Alibaba Cloud
+# Copyright (c) 2016-2023, Wind River Systems, Inc.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -34,10 +35,28 @@
 #        Jia Zhang <zhang.jia@linux.alibaba.com>
 #
 
+PCRS=()
+
 function check_ownership()
 {
 	tpm2_changeauth --object-context=owner
 	[ $? != 0 ] && echo "TPM is not clear" && exit 1
+}
+
+function detect_pcrs()
+{
+	local res="`tpm2_getcap pcrs`"
+	local pcrs=': \[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 \]'
+
+	if echo "$res" | grep -q "sha1$pcrs"; then
+		PCRS+=("sha1")
+		echo "TPM supports SHA1"
+	fi
+
+	if echo "$res" | grep -q "sha256$pcrs"; then
+		PCRS+=("sha256")
+		echo "TPM supports SHA256"
+	fi
 }
 
 function seal_all()
@@ -100,6 +119,8 @@ function test_all()
 
 check_ownership
 
+detect_pcrs
+
 evict_all >/dev/null 2>&1
 
 log=`mktemp /tmp/cryptfs-tpm2-test-log-XXXX`
@@ -108,17 +129,22 @@ echo "The testing log is placed at $log"
 echo -n "[*] testing object generation without PCR ... "
 test_all >$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
 
-echo -n "[*] testing object generation with SHA1 PCR bank ... "
-test_all sha1 >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
+if printf '%s\n' "${PCRs[@]}" | grep -wq "sha1"; then
+    echo -n "[*] testing object generation with SHA1 PCR bank ... "
+    test_all sha1 >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
+fi
 
-echo -n "[*] testing object generation with SHA256 PCR bank ... "
-test_all sha256 >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
+if printf '%s\n' "${PCRs[@]}" | grep -wq "sha256"; then
+    echo -n "[*] testing object generation with SHA256 PCR bank ... "
+    test_all sha256 >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
+fi
 
 echo -n "[*] testing object generation with auto PCR bank ... "
 test_all auto >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
 
 echo -n "[*] testing DA recovery ... "
-tpm2_changeauth --object-context=owner >>$log 2>&1
+tpm2_changeauth --object-context=owner
+tpm2_changeauth --object-context=lockout
 tpm2_changeauth --object-context=owner owner >>$log 2>&1
 tpm2_changeauth --object-context=lockout lockout >>$log 2>&1
 tpm2_dictionarylockout --auth=lockout --clear-lockout >>$log 2>&1
@@ -179,5 +205,7 @@ cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
     }
 }
 
+cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
+    evict all >>$log 2>&1
 tpm2_changeauth --object-context=lockout --object-auth=lockout >>$log 2>&1
 tpm2_changeauth --object-context=owner --object-auth=owner >>$log 2>&1
