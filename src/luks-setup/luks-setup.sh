@@ -427,7 +427,6 @@ OPT_LUKS_NAME="${OPT_LUKS_NAME:-$DEFAULT_ENCRYPTION_NAME}"
 
 check_dependencies
 
-#### Handle OPT_NO_SETUP=1 ####
 if [ $OPT_NO_SETUP -eq 1 ] && [ $OPT_UNMAP_LUKS -eq 1 ]; then
     unmap_luks_volume "$OPT_LUKS_NAME"
     exit 0
@@ -441,6 +440,12 @@ fi
     } || true
 }
 
+if [ $OPT_NO_TPM -eq 0 ]; then
+    detect_tpm
+
+    [ $? -eq 0 ] && TPM_ABSENT=0 || true
+fi
+
 TEMP_DIR=`mktemp -d /dev/luks-setup.XXXXXX`
 print_verbose "Temporary directory created: $TEMP_DIR"
 [ ! -d "$TEMP_DIR" ] && print_error "Failed to create the temporary directory" &&
@@ -452,12 +457,8 @@ if [ $OPT_NO_SETUP -eq 1 ]; then
         exit 1
     fi
 
-    if [ $OPT_NO_TPM -eq 0 ]; then
-	detect_tpm
-	[ $? -eq 0 ] && {
-            TPM_ABSENT=0
-            ! unseal_passphrase "$TEMP_DIR/passphrase" && exit 1
-        }
+    if [ $TPM_ABSENT -eq 0 ]; then
+        ! unseal_passphrase "$TEMP_DIR/passphrase" && exit 1
     fi
 
     ! map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" \
@@ -466,18 +467,15 @@ if [ $OPT_NO_SETUP -eq 1 ]; then
     print_info "The LUKS volume \"$OPT_LUKS_NAME\" backing on $OPT_LUKS_DEV is created"
     exit 0
 fi
-#### End of handling OPT_NO_SETUP=1 ####
 
 if is_luks_volume "$OPT_LUKS_DEV"; then
-    print_info "$OPT_LUKS_DEV is already a LUKS volume. Politely exit"
+    print_info "$OPT_LUKS_DEV is already a LUKS volume"
     [ $OPT_FORCE_CREATION -eq 0 ] && exit 0
 
-    print_info "Enforce creating the LUKS volume"
+    print_info "Enforce creating the LUKS volume \"$OPT_LUKS_NAME\""
 fi
 
-if [ $OPT_NO_TPM -eq 0 ]; then
-    detect_tpm
-    if [ $? -eq 0 ]; then
+if [ $TPM_ABSENT -eq 0 ]; then
         if [ $OPT_EVICT_ALL -eq 1 ]; then
             prompt_info
 
@@ -512,12 +510,9 @@ if [ $OPT_NO_TPM -eq 0 ]; then
                 print_error "Unable to create the primary key and passphrase" &&
                 exit 1
         fi
-
-        TPM_ABSENT=0
-    fi
 fi
 
-if [ $TPM_ABSENT = 1 ]; then
+if [ $TPM_ABSENT -eq 1 ]; then
     echo
     print_critical "**************************************************"
     print_critical "The plain passphrase cannot be protected by a TPM."
