@@ -2,7 +2,8 @@
 
 # Cryptfs-TPM2 testing script with tpm2.0-tools
 #
-# Copyright (c) 2016-2017, Wind River Systems, Inc.
+# Copyright (c) 2024, Alibaba Cloud
+# Copyright (c) 2016-2023, Wind River Systems, Inc.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:

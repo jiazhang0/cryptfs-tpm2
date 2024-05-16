@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2016-2017, Wind River Systems, Inc.
+ * Copyright (c) 2024, Alibaba Cloud
+ * Copyright (c) 2016-2023, Wind River Systems, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -37,7 +38,8 @@ static void
 show_banner(void)
 {
 	info_cont("\nCryptfs-TPM 2.0 tool\n");
-	info_cont("(C)Copyright 2016-2017, Wind River Systems, Inc.\n");
+	info_cont("(C)Copyright 2024, Alibaba Cloud\n");
+	info_cont("(C)Copyright 2016-2023, Wind River Systems, Inc.\n");
 	info_cont("Version: %s+git-%s\n", VERSION, cryptfs_tpm2_git_commit);
 }
 
