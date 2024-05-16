@@ -84,6 +84,8 @@ trap_handler() {
     local line_no="$1"
     local err="$2"
 
+    trap - SIGINT EXIT ERR
+
     print_verbose "Cleaning up ..."
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
     [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
@@ -140,8 +142,81 @@ detect_tpm() {
     export TPM2TOOLS_TCTI_NAME TSS2_TCTI TPM2TOOLS_TCTI
 
     print_info "TPM 2.0 device \"$dev\" detected"
+}
 
-    return 0
+configure_tpm() {
+    [ $TPM_ABSENT -eq 1 ] && return 0
+
+    if [ $OPT_EVICT_ALL -eq 1 ]; then
+        prompt_info
+
+        local cmd="tpm2_changeauth -c lockout"
+        [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --object-auth=$OPT_OLD_LOCKOUT_AUTH"
+        eval "$cmd"
+        if [ $? -ne 0 ]; then
+            print_error "Failed to clear authorization values with the lockoutAuth specified"
+            exit 1
+        fi
+
+        # Disable the DA protection. If lockoutAuth fails, the
+        # recovery interval is a reboot (_TPM_Init followed by
+        # TPM2_Startup).
+        cmd="tpm2_dictionarylockout --setup-parameters --max-tries 1 \
+             --recovery-time 0 --lockout-recovery-time 0"
+        [ -n "$OPT_LOCKOUT_AUTH" ] && cmd="${cmd} $OPT_LOCKOUT_AUTH"
+        eval "$cmd"
+        if [ $? -ne 0 ]; then
+            print_error "Failed to set the default DA policy"
+            exit 1
+        fi
+
+        if tpm2_getcap handles-persistent | grep -q 0x817FFFFE; then
+           print_info "Evicting the passphrase in TPM ..."
+
+           ! cryptfs-tpm2 -q evict passphrase >/dev/null 2>&1 && {
+               print_error "Failed to evict the passphrase"
+               exit 1
+           }
+
+           print_verbose "The passphrase in TPM evicted"
+        fi
+
+        if tpm2_getcap handles-persistent | grep -q 0x817FFFFF; then
+           print_info "Evicting the primary key in TPM ..."
+
+           ! cryptfs-tpm2 -q evict key >/dev/null 2>&1 && {
+               print_error "Failed to evict the primary key"
+               exit 1
+           }
+
+           print_verbose "The primary key in TPM evicted"
+        fi
+    fi
+
+    local pcr_opt=""
+    [ $OPT_USE_PCR -eq 1 ] && pcr_opt="-P auto"
+
+    if ! tpm2_getcap handles-persistent | grep -q 0x817FFFFF; then
+        print_info "Sealing the primary key into TPM ..."
+
+        ! cryptfs-tpm2 -q seal key $pcr_opt && {
+            print_error "Unable to seal the primary key"
+            exit 1
+        }
+
+        print_verbose "The primary key sealed into TPM"
+    fi
+
+    if ! tpm2_getcap handles-persistent | grep -q 0x817FFFFE; then
+        print_info "Sealing the passphrase into TPM ..."
+
+        ! cryptfs-tpm2 -q seal passphrase $pcr_opt && {
+            print_error "Unable to seal the passphrase"
+            exit 1
+        }
+
+        print_verbose "The passphrase sealed into TPM"
+    fi
 }
 
 unseal_passphrase() {
@@ -168,7 +243,7 @@ unseal_passphrase() {
 
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
 
-    return 0
+    print_verbose "Succeed to unseal the passphrase from TPM"
 }
 
 is_luks_volume() {
@@ -178,89 +253,84 @@ is_luks_volume() {
 create_luks_volume() {
     local luks_dev="$1"
     local luks_name="$2"
-    local tpm_absent="$3"
-    local tmp_dir="$4"
     local passphrase="-"
 
     print_info "Creating the LUKS volume \"$luks_name\" ..."
 
-    if [ "$tpm_absent" = "0" ]; then
+    if [ $TPM_ABSENT -eq 0 ]; then
         local pcr_opt=""
 
-        if [ $OPT_USE_PCR -eq 1 ]; then
-            pcr_opt="-P auto"
-        fi
+        [ $OPT_USE_PCR -eq 1 ] && pcr_opt="-P auto"
 
-        tpm2_getcap handles-persistent | grep -q 0x817FFFFF &&
-            tpm2_getcap handles-persistent | grep -q 0x817FFFFE && {
-                ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$tmp_dir/passphrase" &&
-                    print_error "Unable to unseal the passphrase" && return 1;
-
-                passphrase="$tmp_dir/passphrase"
-            } || {
-                print_warning "Not found the sealed passphrase from TPM"
-
-                # Prevent from a single primary key or passphrase remained
-                cryptfs-tpm2 -q evict all >/dev/null 2>&1 || true
-
-                print_info "Automatically sealing the passphrase to TPM ..."
-
-                ! cryptfs-tpm2 -q seal all $pcr_opt &&
-                    print_error "Unable to seal the primary key and passphrase" &&
-                    exit 1
-
-                ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$tmp_dir/passphrase" &&
-                    print_error "Unable to unseal the passphrase" && return 1;
-
-                passphrase="$tmp_dir/passphrase"
-            }
+        passphrase="$TEMP_DIR/passphrase"
+        ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$passphrase" &&
+            print_error "Unable to unseal the passphrase" && return 1;
     fi
 
-    ! cryptsetup --type luks --cipher aes-xts-plain --hash sha256 \
-        --use-random --key-file "$passphrase" luksFormat "$luks_dev" &&
-        print_error "Unable to create the LUKS volume on $luks_dev" &&
+    if ! cryptsetup --type luks --cipher aes-xts-plain --hash sha256 \
+        --use-random --key-file "$passphrase" luksFormat "$luks_dev"; then
+        print_error "Unable to create the LUKS volume on $luks_dev"
         return 1
-
-    return 0
+    fi
 }
 
 map_luks_volume() {
     local luks_dev="$1"
     local luks_name="$2"
-    local tpm_absent="$3"
-    local tmp_dir="$4"
     local passphrase="-"
+
+    if [ -e "/dev/mapper/$luks_name" ]; then
+        print_verbose "The LUKS volume \"$luks_name\" already mapped"
+        return 0
+    fi
 
     print_info "Mapping the LUKS volume \"$luks_name\" ..."
 
-    [ "$tpm_absent" = "0" ] && passphrase="$4/passphrase"
+    if [ $TPM_ABSENT -eq 0 ]; then
+        passphrase="$TEMP_DIR/passphrase"
 
-    ! cryptsetup luksOpen --key-file "$passphrase" "$luks_dev" "$luks_name" &&
-        print_error "Unable to map the LUKS volume \"$luks_name\"" && return 1
+        ! unseal_passphrase "$passphrase" && exit 1
+    fi
 
-    return 0
+    if ! cryptsetup luksOpen --key-file "$passphrase" "$luks_dev" "$luks_name"; then
+        print_error "Unable to map the LUKS volume \"$luks_name\""
+        return 1
+    fi
 }
 
 unmap_luks_volume() {
     local luks_name="$1"
 
-    [ -e "/dev/mapper/$luks_name" ] && print_info "Unmapping the LUKS volume \"$luks_name\" ..." &&
-        cryptsetup luksClose "$luks_name" || true
+    if [ ! -e "/dev/mapper/$luks_name" ]; then
+        print_verbose "Nothing to unmap"
+        return 1
+    else
+        print_info "Unmapping the LUKS volume \"$luks_name\" ..."
+
+        cryptsetup luksClose "$luks_name" || return $?
+    fi
+
+    print_verbose "The LUKS volume \"$luks_name\" unmapped"
 }
 
 check_dependencies() {
-    pkg=("cryptsetup" "tpm2-tss" "tpm2-tools")
+    local pkg=("cryptsetup" "tpm2-tss" "tpm2-tools")
+
+    print_info "Checking the dependencies ..."
 
     for p in "${pkg[@]}"; do
-        rpm -q "$p" >/dev/null 2>&1 || {
+        if ! rpm -q "$p" >/dev/null 2>&1; then
             print_info "Installing the package \"$p\" ..."
 
-            yum install -y $p || {
+            local err=`yum install -y "$p"`
+            if [ $err -ne 0 ]; then
                 print_error "Failed to install the package \"$p\""
-                exit 1
-            }
-        }
+                exit $err
+            fi
+        fi
     done
+
+    print_verbose "The dependencies satisfied"
 }
 
 prompt_info() {
@@ -344,6 +414,9 @@ Options:
  -V|--verbose
     (Optional) Show the verbose output.
 
+ -D|--debug
+    (Optional) Enbale the debug.
+
  --version
     Show the release version.
 
@@ -360,8 +433,10 @@ OPT_NO_TPM=0
 OPT_USE_PCR=0
 OPT_EVICT_ALL=0
 OPT_VERBOSE=0
+OPT_DEBUG=0
 # Depreciated
 OPT_MAP_EXISTING_LUKS=0
+# Depreciated
 OPT_NO_SETUP=0
 OPT_OLD_LOCKOUT_AUTH=""
 OPT_LOUCKOUT_AUTH=""
@@ -405,6 +480,9 @@ while [ $# -gt 0 ]; do
 	-V|--verbose)
 	    OPT_VERBOSE=1
 	    ;;
+        -D|--debug)
+            OPT_DEBUG=1 && set -x
+            ;;
 	--version)
 	    print_info "$VERSION"
 	    exit 0
@@ -427,107 +505,48 @@ OPT_LUKS_NAME="${OPT_LUKS_NAME:-$DEFAULT_ENCRYPTION_NAME}"
 
 check_dependencies
 
-if [ $OPT_NO_SETUP -eq 1 ] && [ $OPT_UNMAP_LUKS -eq 1 ]; then
-    unmap_luks_volume "$OPT_LUKS_NAME"
-    exit 0
-fi
-
-[ x"$OPT_LUKS_DEV" = x"" ] && {
-    print_error "LUKS device is not specified" && exit 1
-} || {
-    [ ! -e "$OPT_LUKS_DEV" ] && {
-        print_error "Invalid LUKS device specified" && exit 1
-    } || true
-}
-
-if [ $OPT_NO_TPM -eq 0 ]; then
-    detect_tpm
-
-    [ $? -eq 0 ] && TPM_ABSENT=0 || true
-fi
-
-TEMP_DIR=`mktemp -d /dev/luks-setup.XXXXXX`
-print_verbose "Temporary directory created: $TEMP_DIR"
-[ ! -d "$TEMP_DIR" ] && print_error "Failed to create the temporary directory" &&
-    exit 1
-
-if [ $OPT_NO_SETUP -eq 1 ]; then
-    if ! is_luks_volume "$OPT_LUKS_DEV"; then
-        print_info "$OPT_LUKS_DEV is not a LUKS volume"
+if [ x"$OPT_LUKS_DEV" = x"" ]; then
+    if ! unmap_luks_volume "$OPT_LUKS_NAME"; then
+        print_error "LUKS device is not specified"
         exit 1
     fi
 
-    if [ $TPM_ABSENT -eq 0 ]; then
-        ! unseal_passphrase "$TEMP_DIR/passphrase" && exit 1
-    fi
-
-    ! map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" \
-        "$TPM_ABSENT" "$TEMP_DIR" && exit 1
-
-    print_info "The LUKS volume \"$OPT_LUKS_NAME\" backing on $OPT_LUKS_DEV is created"
     exit 0
+elif [ ! -e "$OPT_LUKS_DEV" ]; then
+    print_error "Invalid LUKS device specified"
+    exit 1
+fi
+
+if [ $OPT_NO_TPM -eq 0 ]; then
+    if detect_tpm; then
+        TPM_ABSENT=0
+
+        ! configure_tpm && exit 1
+    fi
+fi
+
+TEMP_DIR=`mktemp -d /dev/luks-setup.XXXXXX`
+print_verbose "Temporary directory created at \"$TEMP_DIR\""
+if [ ! -d "$TEMP_DIR" ]; then
+    print_error "Failed to create the temporary directory"
+    exit 1
 fi
 
 if is_luks_volume "$OPT_LUKS_DEV"; then
     print_info "$OPT_LUKS_DEV is already a LUKS volume"
-    [ $OPT_FORCE_CREATION -eq 0 ] && exit 0
+
+    if [ $OPT_FORCE_CREATION -eq 0 ]; then
+        map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" && exit 1
+        exit 0
+    fi
 
     print_info "Enforce creating the LUKS volume \"$OPT_LUKS_NAME\""
 fi
 
-if [ $TPM_ABSENT -eq 0 ]; then
-        if [ $OPT_EVICT_ALL -eq 1 ]; then
-            prompt_info
+! create_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" && exit 1
 
-            cmd="tpm2_changeauth -c lockout"
-            [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --object-auth=$OPT_OLD_LOCKOUT_AUTH"
-            eval "$cmd"
-            if [ $? -ne 0 ]; then
-                print_error "Failed to clear authorization values with the lockoutAuth specified"
-                exit 1
-            fi
-
-            # Disable the DA protection. If lockoutAuth fails, the
-            # recovery interval is a reboot (_TPM_Init followed by
-            # TPM2_Startup).
-            cmd="tpm2_dictionarylockout --setup-parameters --max-tries 1 \
-                     --recovery-time 0 --lockout-recovery-time 0"
-            [ -n "$OPT_LOCKOUT_AUTH" ] && cmd="${cmd} $OPT_LOCKOUT_AUTH"
-            eval "$cmd"
-            if [ $? -ne 0 ]; then
-                print_error "Failed to set the default DA policy"
-                exit 1
-            fi
-
-            cryptfs-tpm2 -q evict all >/dev/null 2>&1 || true
-
-	    local pcr_opt=""
-	    if [ $OPT_USE_PCR -eq 1 ]; then
-                pcr_opt="-P auto"
-	    fi
-
-            ! cryptfs-tpm2 -q seal all $pcr_opt &&
-                print_error "Unable to create the primary key and passphrase" &&
-                exit 1
-        fi
-fi
-
-if [ $TPM_ABSENT -eq 1 ]; then
-    echo
-    print_critical "**************************************************"
-    print_critical "The plain passphrase cannot be protected by a TPM."
-    print_critical "You have to type the passphrase when prompted."
-    print_critical "Take the risk by self if leaked by accident."
-    print_critical "**************************************************"
-    echo
-fi
-
-! create_luks_volume "$OPT_LUKS_DEV" \
-    "$OPT_LUKS_NAME" "$TPM_ABSENT" "$TEMP_DIR" && exit 1
-
-! map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" \
-    "$TPM_ABSENT" "$TEMP_DIR" && exit 1
+! map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" && exit 1
 
 [ $OPT_UNMAP_LUKS -eq 1 ] && unmap_luks_volume "$OPT_LUKS_NAME"
 
-print_info "The LUKS volume \"$OPT_LUKS_NAME\" is created on $OPT_LUKS_DEV"
+print_info "The LUKS volume \"$OPT_LUKS_NAME\" backing on $OPT_LUKS_DEV is created"
