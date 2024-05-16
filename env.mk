@@ -40,8 +40,6 @@ CFLAGS := -D_GNU_SOURCE -std=gnu99 -O2 -Wall -Werror \
 	    $(tpm2_tss_includedir) $(tpm2_tabrmd_includedir) \
             $(glib_includedir)) \
 	  $(addprefix $(join -L,), $(tpm2_tss_libdir)) \
-	  `$(PKG_CONFIG) --cflags glib-2.0` \
-	  `$(PKG_CONFIG) --libs glib-2.0` \
 	  $(EXTRA_CFLAGS) $(addprefix $(join -Wl,,),$(LDFLAGS))
 
 ifneq ($(TSS2_VER), 1)
