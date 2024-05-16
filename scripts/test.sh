@@ -166,6 +166,8 @@ cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
             unseal passphrase -P auto 2>&1 | grep -q 0x921
 
         [ $? -ne 0 ] && echo "[FAILED]" || {
+            tpm2_dictionarylockout --auth=lockout --clear-lockout >>$log 2>&1
+
             echo "Unseal passphrase and reset DA lockout ..." >>$log 2>&1
             cryptfs-tpm2 -q --lockout-auth lockout \
                 --passphrase-secret pass \
