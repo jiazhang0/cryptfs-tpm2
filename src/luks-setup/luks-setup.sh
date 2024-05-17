@@ -276,7 +276,7 @@ create_luks_volume() {
 
     unseal_passphrase
 
-    if ! cryptsetup --type luks --cipher aes-xts-plain --hash sha256 \
+    if ! cryptsetup --type luks --cipher aes-xts-plain64 --hash sha256 \
           --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev"; then
         print_error "Unable to create the LUKS volume on $luks_dev"
         return 1
