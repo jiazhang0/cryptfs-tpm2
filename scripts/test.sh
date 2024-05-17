@@ -145,8 +145,8 @@ echo -n "[*] testing object generation with auto PCR bank ... "
 test_all auto >>$log 2>&1 && echo "[SUCCEEDED]" || echo "[FAILED]"
 
 echo -n "[*] testing DA recovery ... "
-tpm2_changeauth --object-context=owner
-tpm2_changeauth --object-context=lockout
+tpm2_changeauth --object-context=owner >>$log 2>&1
+tpm2_changeauth --object-context=lockout >>$log 2>&1
 tpm2_changeauth --object-context=owner owner >>$log 2>&1
 tpm2_changeauth --object-context=lockout lockout >>$log 2>&1
 tpm2_dictionarylockout --auth=lockout --clear-lockout >>$log 2>&1
@@ -209,7 +209,8 @@ cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
     }
 }
 
+# For cleanup
 cryptfs-tpm2 -q --owner-auth owner --key-secret key --passphrase-secret pass \
-    evict all >>$log 2>&1
-tpm2_changeauth --object-context=lockout --object-auth=lockout >>$log 2>&1
-tpm2_changeauth --object-context=owner --object-auth=owner >>$log 2>&1
+    evict all >/dev/null 2>&1
+tpm2_changeauth --object-context=lockout --object-auth=lockout >/dev/null 2>&1
+tpm2_changeauth --object-context=owner --object-auth=owner >/dev/null 2>&1
