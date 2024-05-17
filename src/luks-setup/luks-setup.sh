@@ -88,7 +88,7 @@ trap_handler() {
 
     trap - SIGINT EXIT ERR
 
-    print_verbose "Cleaning up ..."
+    print_verbose "Cleaning up and exiting ..."
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
     [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
     unset TPM2TOOLS_DEVICE_FILE TPM2TOOLS_TCTI_NAME TSS2_TCTI
@@ -101,10 +101,10 @@ trap_handler() {
 }
 
 detect_tpm() {
-    [ ! -e /sys/class/tpm ] && print_info "TPM subsystem is not enabled" && return 1
+    [ ! -e /sys/class/tpm ] && print_warning "TPM subsystem is not enabled" && return 1
 
     local tpm_devices=$(ls /sys/class/tpm)
-    [ -z "$tpm_devices" ] && print_info "No TPM device detected" && return 1
+    [ -z "$tpm_devices" ] && print_warning "No TPM device detected" && return 1
 
     local tpm_absent=1
     local dev=""
@@ -150,7 +150,7 @@ configure_tpm() {
     [ $TPM_ABSENT -eq 1 ] && return 0
 
     if [ $OPT_EVICT_ALL -eq 1 ]; then
-        prompt_info
+        alert_prompt
 
         local cmd="tpm2_changeauth -c lockout"
         [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --object-auth=$OPT_OLD_LOCKOUT_AUTH"
@@ -288,11 +288,11 @@ map_luks_volume() {
     local luks_name="$2"
 
     if [ -e "/dev/mapper/$luks_name" ]; then
-        print_verbose "The LUKS volume \"$luks_name\" already mapped"
+        print_warning "The LUKS volume \"$luks_name\" already mapped"
         return 0
     fi
 
-    print_info "Mapping the LUKS volume \"$luks_name\" ..."
+    print_verbose "Mapping the LUKS volume \"$luks_name\" ..."
 
     unseal_passphrase
 
@@ -300,6 +300,8 @@ map_luks_volume() {
         print_error "Unable to map the LUKS volume \"$luks_name\""
         return 1
     fi
+
+    print_info "The LUKS volume \"$luks_name\" mapped"
 }
 
 unmap_luks_volume() {
@@ -309,37 +311,42 @@ unmap_luks_volume() {
         print_verbose "Nothing to unmap"
         return 1
     else
-        print_info "Unmapping the LUKS volume \"$luks_name\" ..."
+        print_verbose "Unmapping the LUKS volume \"$luks_name\" ..."
 
         cryptsetup luksClose "$luks_name" || return $?
     fi
 
-    print_verbose "The LUKS volume \"$luks_name\" unmapped"
+    print_info "The LUKS volume \"$luks_name\" unmapped"
 }
 
 check_dependencies() {
     local pkgs=("cryptsetup" "tpm2-tss" "tpm2-tools")
 
-    print_info "Checking the dependencies ..."
+    print_verbose "Checking the dependencies ..."
 
     for p in "${pkgs[@]}"; do
         if ! rpm -q "$p" >/dev/null 2>&1; then
-            print_info "Installing the package \"$p\" ..."
+            print_verbose "Installing the package \"$p\" ..."
 
             yum install -y "$p"
             if [ $? -ne 0 ]; then
                 print_error "Failed to install the package \"$p\""
                 exit 1
             fi
+        else
+            print_verbose "The package \"$p\" already installed"
         fi
     done
 
-    which cbmkpasswd >/dev/null 2>&1 && USE_CBMKPASSWD=1
+    if which cbmkpasswd >/dev/null 2>&1; then
+        USE_CBMKPASSWD=1
+        print_verbose "Found the cbmkpasswd tool"
+    fi
 
-    print_verbose "The dependencies satisfied"
+    print_info "The dependencies satisfied"
 }
 
-prompt_info() {
+alert_prompt() {
     echo
     print_critical "******************************************************************"
     print_critical "The primary key and passphrase previously created will be wiped,"
@@ -498,7 +505,7 @@ while [ $# -gt 0 ]; do
             exit 0
             ;;
         *)
-            print_error "Unsupported option $opt"
+            print_error "Unrecognized option $opt"
             exit 1
             ;;
     esac
@@ -511,15 +518,17 @@ OPT_LUKS_NAME="${OPT_LUKS_NAME:-$DEFAULT_ENCRYPTION_NAME}"
 
 check_dependencies
 
-if [ x"$OPT_LUKS_DEV" = x"" ]; then
-    if ! unmap_luks_volume "$OPT_LUKS_NAME"; then
-        print_error "LUKS device is not specified"
-        exit 1
-    fi
+if [ $OPT_UNMAP_LUKS -eq 1 ]; then
+    ! unmap_luks_volume "$OPT_LUKS_NAME" && exit 1
+fi
 
-    exit 0
+if [ x"$OPT_LUKS_DEV" = x"" ]; then
+    [ $OPT_UNMAP_LUKS -eq 1 ] && exit 0
+
+    print_error "A backing device required to be specified with -d/--dev"
+    exit 1
 elif [ ! -e "$OPT_LUKS_DEV" ]; then
-    print_error "Invalid LUKS device specified"
+    print_error "Invalid bakcing device specified with -d/--dev"
     exit 1
 fi
 
@@ -530,6 +539,10 @@ if [ $OPT_NO_TPM -eq 0 ]; then
 
         ! configure_tpm && exit 1
     fi
+else
+    print_info "Skip the detection of TPM 2.0 device"
+    [ $USE_CBMKPASSWD -eq 1 ] && print_info "Use the cbmkpasswd instead" ||
+        print_info "Prepare to prompt for the passphrase instead"
 fi
 
 TEMP_DIR=`mktemp -d /dev/luks-setup.XXXXXX`
@@ -540,14 +553,21 @@ if [ ! -d "$TEMP_DIR" ]; then
 fi
 
 if is_luks_volume "$OPT_LUKS_DEV"; then
-    print_info "$OPT_LUKS_DEV is already a LUKS volume"
+    print_warning "A LUKS volume backing on \"$OPT_LUKS_DEV\" already existed"
 
     if [ $OPT_FORCE_CREATION -eq 0 ]; then
-        map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" && exit 1
-        exit 0
+        print_info "Skip the creation of LUKS volume unless specifying --force"
+
+        map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME"
+        exit $?
     fi
 
-    print_info "Enforce creating the LUKS volume \"$OPT_LUKS_NAME\""
+    print_info "Decide to enforce creating the LUKS volume \"$OPT_LUKS_NAME\""
+
+    if [ -e "/dev/mapper/$OPT_LUKS_NAME" ]; then
+        print_error "The mapped LUKS volume \"$OPT_LUKS_NAME\" required to be unmapped first"
+        exit 1
+    fi
 fi
 
 ! create_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" && exit 1
