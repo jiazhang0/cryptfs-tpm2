@@ -54,7 +54,7 @@ define encrypt_secret
 endef
 
 build_info.c: build_info.c.in
-	sed -e "s~@@CRYPTFS_TPM2_GIT_COMMIT@@~$(shell if [ -d $(TOPDIR)/.git ]; then git log -1 --pretty=format:%H | tr -d '\n'; elif [ -f $(TOPDIR)/commit ]; then cat $(TOPDIR)/commit | tr -d '\n'; else echo -n ???????; fi)~" \
+	sed -e "s~@@CRYPTFS_TPM2_GIT_COMMIT@@~$(shell if [ -e $(TOPDIR)/.git ]; then git log -1 --pretty=format:%H | tr -d '\n'; elif [ -f $(TOPDIR)/commit ]; then cat $(TOPDIR)/commit | tr -d '\n'; else echo -n ???????; fi)~" \
 	    < $< > $@
 
 secret_area.S: primary_key.secret passphrase.secret
