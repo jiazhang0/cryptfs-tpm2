@@ -367,8 +367,11 @@ alert_prompt() {
 }
 
 option_check() {
-    if [ -z "$1" ] || echo "$1" | grep -q "^-"; then
-        print_error "No value specified for the option $arg"
+    local opt="$1"
+    local val="$2"
+
+    if [ -z "$val" ] || echo "$val" | grep -q "^-"; then
+        print_error "No value specified for the option $opt"
         exit 1
     fi
 }
@@ -458,13 +461,17 @@ while [ $# -gt 0 ]; do
     opt=$1
     case $opt in
         -d|--dev)
-            shift && option_check $1 && OPT_LUKS_DEV="$1"
+            shift
+            option_check "$opt" "$1"
+            OPT_LUKS_DEV="$1"
             ;;
         -N|--no-setup)
             OPT_NO_SETUP=1
             ;;
         -n|--name)
-            shift && option_check $1 && OPT_LUKS_NAME="$1"
+            shift
+            option_check "$opt" "$1"
+            OPT_LUKS_NAME="$1"
             ;;
         -m|--map-existing)
             OPT_MAP_EXISTING_LUKS=1
@@ -485,16 +492,21 @@ while [ $# -gt 0 ]; do
             OPT_EVICT_ALL=1
             ;;
         --old-lockout-auth)
-            shift && option_check "$1" && OPT_OLD_LOCKOUT_AUTH="$1"
+            shift
+            option_check "$opt" "$1"
+            OPT_OLD_LOCKOUT_AUTH="$1"
             ;;
         --lockout-auth)
-            shift && option_check "$1" && OPT_LOCKOUT_AUTH="$1"
+            shift
+            option_check "$opt" "$1"
+            OPT_LOCKOUT_AUTH="$1"
             ;;
         -V|--verbose)
             OPT_VERBOSE=1
             ;;
         -D|--debug)
-            OPT_DEBUG=1 && set -x
+            OPT_DEBUG=1
+            set -x
             ;;
         --version)
             print_info "$VERSION"
@@ -522,7 +534,7 @@ if [ $OPT_UNMAP_LUKS -eq 1 ]; then
     ! unmap_luks_volume "$OPT_LUKS_NAME" && exit 1
 fi
 
-if [ x"$OPT_LUKS_DEV" = x"" ]; then
+if [ -z "$OPT_LUKS_DEV" ]; then
     [ $OPT_UNMAP_LUKS -eq 1 ] && exit 0
 
     print_error "A backing device required to be specified with -d/--dev"
