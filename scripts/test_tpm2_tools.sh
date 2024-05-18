@@ -52,94 +52,94 @@ PASS="$tmpdir/passphrase"
 # Assume TPM is clear
 function check_ownership()
 {
-	tpm2_changeauth --object-context=owner
-	[ $? != 0 ] && echo "TPM is not clear" && exit 1
+    tpm2_changeauth --object-context=owner
+    [ $? != 0 ] && echo "TPM is not clear" && exit 1
 }
 
 # Create a primary key in owner hierarchy
 function create_primary_key()
 {
-	# SHA256 algorithm used for computing the name of the primary key
-	local hash_alg="sha256"
-	# RSA algorithm associated with the primary key
-	local key_alg="rsa"
+    # SHA256 algorithm used for computing the name of the primary key
+    local hash_alg="sha256"
+    # RSA algorithm associated with the primary key
+    local key_alg="rsa"
 
-	echo "Creating a primary key ..."
-	tpm2_createprimary --hierarchy=owner --hash-algorithm=$hash_alg \
-	  --key-algorithm=$key_alg --key-auth="$PRI_KEY_SECRET" \
-	  --key-context="$PRI_KEY_CONTEXT_BLOB"
-	[ $? != 0 ] && echo "Unable to create the primary key" && exit 2
+    echo "Creating a primary key ..."
+    tpm2_createprimary --hierarchy=owner --hash-algorithm=$hash_alg \
+      --key-algorithm=$key_alg --key-auth="$PRI_KEY_SECRET" \
+      --key-context="$PRI_KEY_CONTEXT_BLOB"
+    [ $? != 0 ] && echo "Unable to create the primary key" && exit 2
 
-	# Make the primary key persistent in the TPM, otherwise it will be need
-	# to be recreated after each TPM Reset if not context saved, or reloaded
-	# with the saved context.
-	echo "Making the primary key persistent ..."
-	tpm2_evictcontrol --hierarchy=owner --object-context="$PRI_KEY_CONTEXT_BLOB" \
-	  $PRI_KEY_HANDLE
-	[ $? != 0 ] && echo "Unable to make the primary key persistent" && exit 3
+    # Make the primary key persistent in the TPM, otherwise it will be need
+    # to be recreated after each TPM Reset if not context saved, or reloaded
+    # with the saved context.
+    echo "Making the primary key persistent ..."
+    tpm2_evictcontrol --hierarchy=owner --object-context="$PRI_KEY_CONTEXT_BLOB" \
+      $PRI_KEY_HANDLE
+    [ $? != 0 ] && echo "Unable to make the primary key persistent" && exit 3
 
-	rm -f "$PRI_KEY_CONTEXT_BLOB"
+    rm -f "$PRI_KEY_CONTEXT_BLOB"
 }
 
 # Create the passphase used to decrypt LUKS master key
 function create_passphrase()
 {
-	# SHA256 algorithm used for computing the name of the sealed passphase
-	local hash_alg="sha256"
-	# Keyedhash algorithm associated with the sealed passphase
-	local key_alg="keyedhash"
+    # SHA256 algorithm used for computing the name of the sealed passphase
+    local hash_alg="sha256"
+    # Keyedhash algorithm associated with the sealed passphase
+    local key_alg="keyedhash"
 
-	echo "Generating a passphrase ..."
-	tpm2_getrandom --output "$PASS" 8
-	[ $? != 0 ] && echo "Unable to generate the passphrase" && exit 4
+    echo "Generating a passphrase ..."
+    tpm2_getrandom --output "$PASS" 8
+    [ $? != 0 ] && echo "Unable to generate the passphrase" && exit 4
 
-	echo "Sealing the passphrase ..."
-	tpm2_create --hash-algorithm=$hash_alg --parent-context="$PRI_KEY_HANDLE" \
-	  --sealing-input="$PASS" --parent-auth="$PRI_KEY_SECRET" \
-	  --key-auth="$PASS_SECRET" --public="$PASS_PUB_BLOB" --private="$PASS_PRIV_BLOB" \
-	  --key-context="$PASS_CONTEXT_BLOB"
-	[ $? != 0 ] && echo "Unable to create the sealed passphrase" && exit 5
+    echo "Sealing the passphrase ..."
+    tpm2_create --hash-algorithm=$hash_alg --parent-context="$PRI_KEY_HANDLE" \
+      --sealing-input="$PASS" --parent-auth="$PRI_KEY_SECRET" \
+      --key-auth="$PASS_SECRET" --public="$PASS_PUB_BLOB" --private="$PASS_PRIV_BLOB" \
+      --key-context="$PASS_CONTEXT_BLOB"
+    [ $? != 0 ] && echo "Unable to create the sealed passphrase" && exit 5
 
-	echo "Loading the passphrase ..."
-	tpm2_load --parent-context="$PRI_KEY_HANDLE" --auth="$PRI_KEY_SECRET" \
-	  --public="$PASS_PUB_BLOB" --public="$PASS_PRIV_BLOB" \
-	  --key-context="$PASS_CONTEXT_BLOB" --name="$PASS_NAME_BLOB"
-	[ $? != 0 ] && echo "Unable to load the passphrase" && exit 6
+    echo "Loading the passphrase ..."
+    tpm2_load --parent-context="$PRI_KEY_HANDLE" --auth="$PRI_KEY_SECRET" \
+      --public="$PASS_PUB_BLOB" --public="$PASS_PRIV_BLOB" \
+      --key-context="$PASS_CONTEXT_BLOB" --name="$PASS_NAME_BLOB"
+    [ $? != 0 ] && echo "Unable to load the passphrase" && exit 6
 
-	rm -f "$PASS_NAME_BLOB"
-	rm -f "$PASS_PUB_BLOB"
-	rm -f "$PASS_PRIV_BLOB"
+    rm -f "$PASS_NAME_BLOB"
+    rm -f "$PASS_PUB_BLOB"
+    rm -f "$PASS_PRIV_BLOB"
 
-	# Make the passphrase persistent in the TPM
-	echo "Making the passphrase persistent ..."
+    # Make the passphrase persistent in the TPM
+    echo "Making the passphrase persistent ..."
         tpm2_evictcontrol --hierarchy=owner --object-context="$PASS_CONTEXT_BLOB" \
           --auth="$PASS_SECRET" $PASS_HANDLE
-	[ $? != 0 ] && echo "Unable to make the passphrase persistent" && exit 7
+    [ $? != 0 ] && echo "Unable to make the passphrase persistent" && exit 7
 
-	rm -f "$PASS_CONTEXT_BLOB"
+    rm -f "$PASS_CONTEXT_BLOB"
 }
 
 function show_passphrase()
 {
-	echo "Showing the passphrase ..."
-	hexdump -C "$PASS"
-	rm -f "$PASS"
+    echo "Showing the passphrase ..."
+    hexdump -C "$PASS"
+    rm -f "$PASS"
 
-	echo "Unsealing the passphrase ..."
-	tpm2_unseal --object-context="$PASS_HANDLE" --auth="$PASS_SECRET" \
-	  --output="$PASS_BLOB"
-	[ $? != 0 ] && echo "Unable to unseal the passphrase" && exit 8
+    echo "Unsealing the passphrase ..."
+    tpm2_unseal --object-context="$PASS_HANDLE" --auth="$PASS_SECRET" \
+      --output="$PASS_BLOB"
+    [ $? != 0 ] && echo "Unable to unseal the passphrase" && exit 8
 }
 
 function evict_all()
 {
-	echo "Evicting the passphrase ..."
-	tpm2_evictcontrol --hierarchy=owner --object-context=$PRI_KEY_HANDLE 
-	[ $? != 0 ] && echo "Unable to evict the passphrase" && exit 9
+    echo "Evicting the passphrase ..."
+    tpm2_evictcontrol --hierarchy=owner --object-context=$PRI_KEY_HANDLE 
+    [ $? != 0 ] && echo "Unable to evict the passphrase" && exit 9
 
-	echo "Evicting the primary key ..."
-	tpm2_evictcontrol --hierarchy=owner --object-context=$PASS_HANDLE
-	[ $? != 0 ] && echo "Unable to evict the primary key" && exit 10
+    echo "Evicting the primary key ..."
+    tpm2_evictcontrol --hierarchy=owner --object-context=$PASS_HANDLE
+    [ $? != 0 ] && echo "Unable to evict the primary key" && exit 10
 }
 
 check_ownership

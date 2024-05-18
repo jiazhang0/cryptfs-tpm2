@@ -119,12 +119,12 @@ detect_tpm() {
         grep -q "TPM 2.0 Device" "/sys/class/tpm/$dev/device/firmware_node/description" 2>/dev/null &&
             tpm_absent=0 && break
 
-	# With the latest kernel, use tpm_version_major
-	grep -q "2" "/sys/class/tpm/$dev/tpm_version_major" 2>/dev/null &&
-	    tpm_absent=0 && break
+        # With the latest kernel, use tpm_version_major
+        grep -q "2" "/sys/class/tpm/$dev/tpm_version_major" 2>/dev/null &&
+            tpm_absent=0 && break
 
-	# Support virtual TPM
-	ls "/sys/class/tpm/$dev/device/driver" 2>/dev/null | grep -q MSFT0101 && tpm_absent=0 && break
+        # Support virtual TPM
+        ls "/sys/class/tpm/$dev/device/driver" 2>/dev/null | grep -q MSFT0101 && tpm_absent=0 && break
     done
 
     [ $tpm_absent -eq 1 ] && print_info "No TPM 2.0 device found" && return 1
@@ -253,9 +253,9 @@ unseal_passphrase() {
         [ $OPT_USE_PCR -eq 1 ] && pcr_opt="-P auto"
 
         ! cryptfs-tpm2 -q unseal passphrase $pcr_opt -o "$PASSPHRASE" &&
-	    print_error "Unable to unseal the passphrase" && exit 1
+            print_error "Unable to unseal the passphrase" && exit 1
     else
-	print_error "Unable to contact the resource manager" && exit 1
+        print_error "Unable to contact the resource manager" && exit 1
     fi
 
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
@@ -460,46 +460,46 @@ while [ $# -gt 0 ]; do
         -d|--dev)
             shift && option_check $1 && OPT_LUKS_DEV="$1"
             ;;
-	-N|--no-setup)
+        -N|--no-setup)
             OPT_NO_SETUP=1
             ;;
-	-n|--name)
-	    shift && option_check $1 && OPT_LUKS_NAME="$1"
-	    ;;
-	-m|--map-existing)
+        -n|--name)
+            shift && option_check $1 && OPT_LUKS_NAME="$1"
+            ;;
+        -m|--map-existing)
             OPT_MAP_EXISTING_LUKS=1
             ;;
-	-f|--force)
-	    OPT_FORCE_CREATION=1
-	    ;;
-	-u|--unmap)
-	    OPT_UNMAP_LUKS=1
-	    ;;
-	-t|--no-tpm)
-	    OPT_NO_TPM=1
-	    ;;
-	-p|--use-pcr)
-	    OPT_USE_PCR=1
-	    ;;
-	-e|--evict-all)
-	    OPT_EVICT_ALL=1
-	    ;;
+        -f|--force)
+            OPT_FORCE_CREATION=1
+            ;;
+        -u|--unmap)
+            OPT_UNMAP_LUKS=1
+            ;;
+        -t|--no-tpm)
+            OPT_NO_TPM=1
+            ;;
+        -p|--use-pcr)
+            OPT_USE_PCR=1
+            ;;
+        -e|--evict-all)
+            OPT_EVICT_ALL=1
+            ;;
         --old-lockout-auth)
             shift && option_check "$1" && OPT_OLD_LOCKOUT_AUTH="$1"
             ;;
         --lockout-auth)
             shift && option_check "$1" && OPT_LOCKOUT_AUTH="$1"
             ;;
-	-V|--verbose)
-	    OPT_VERBOSE=1
-	    ;;
+        -V|--verbose)
+            OPT_VERBOSE=1
+            ;;
         -D|--debug)
             OPT_DEBUG=1 && set -x
             ;;
-	--version)
-	    print_info "$VERSION"
-	    exit 0
-	    ;;
+        --version)
+            print_info "$VERSION"
+            exit 0
+            ;;
         -h|--help)
             show_help "$PROG_NAME"
             exit 0
