@@ -340,7 +340,9 @@ configure_tpm() {
 unseal_passphrase() {
     print_verbose "[?] Unsealing the passphrase ..."
 
-    if [ $USE_CBMKPASSWD -eq 1 ]; then
+    if [ $TPM_ABSENT -eq 1 ]; then
+        [ $USE_CBMKPASSWD -eq 0 ] && return 0
+
         PASSPHRASE="$TEMP_DIR/passphrase"
 
         if ! cbmkpasswd -o "$PASSPHRASE"; then
@@ -352,8 +354,6 @@ unseal_passphrase() {
 
         return 0
     fi
-
-    [ $TPM_ABSENT -eq 1 ] && return 0
 
     PASSPHRASE="$TEMP_DIR/passphrase"
 
@@ -571,8 +571,6 @@ main() {
     if [ $OPT_NO_TPM -eq 0 ]; then
         if detect_tpm; then
             TPM_ABSENT=0
-            # Forcefully forbid the execution of the cbmkpasswd tool
-            USE_CBMKPASSWD=0
 
             ! configure_tpm && exit 1
         fi
