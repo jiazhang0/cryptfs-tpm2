@@ -41,15 +41,18 @@
 VERSION="0.1.0"
 
 # Define the denpendent packages used by this tool
-PACKAGES_DEPENDENT="cryptsetup tpm2-tools procps-ng coreutils grep"
+# The "+" prefix means optional package
+PACKAGES_DEPENDENT="cryptsetup tpm2-tools procps-ng coreutils grep +cloudbox"
 
 DEFAULT_LUKS_VOLUME_NAME="${DEFAULT_LUKS_VOLUME_NAME:-luks_volume}"
 # Prompt the user-supplied passphrase by default
 PASSPHRASE="-"
-# Assuming TPM 2.0 device absent by default
-TPM_ABSENT=1
 # Don't use cbmkpasswd by default
 USE_CBMKPASSWD=0
+# Assuming prompting for the passphrase by default
+TOKEN_TYPE="luks-setup-prompt"
+# Assuming no recovery passphrase by default
+RECOVERY_TYPE=""
 TEMP_DIR=""
 PROG_NAME=`basename $0`
 # If luks-setup is called to map a drive before the boot is completed,
@@ -63,6 +66,7 @@ OPT_UNMAP_LUKS=0
 OPT_NO_TPM=0
 OPT_USE_PCR=0
 OPT_EVICT_ALL=0
+OPT_RECOVERY=0
 OPT_VERBOSE=0
 OPT_DEBUG=0
 OPT_OLD_LOCKOUT_AUTH=""
@@ -115,6 +119,9 @@ Options:
 
  -e|--evict-all
     (Optional) Always evict the primary key and passphrase.
+
+ -r|--recovery
+    (Optional) Use the recovery keyslot to unlock the LUKS volume.
 
  --old-lockout-auth <old lockoutAuth value>
     (Optional) Special the old lockoutAuth used to clear the old
@@ -259,8 +266,6 @@ detect_tpm() {
 }
 
 configure_tpm() {
-    [ $TPM_ABSENT -eq 1 ] && return 1
-
     print_verbose "[?] Configuring TPM 2.0 device ..."
 
     if [ $OPT_EVICT_ALL -eq 1 ]; then
@@ -337,25 +342,35 @@ configure_tpm() {
     print_info "[!] Configured TPM 2.0 device"
 }
 
-unseal_passphrase() {
-    print_verbose "[?] Unsealing the passphrase ..."
+retrieve_passphrase() {
+    print_verbose "[?] Retrieving the passphrase ..."
 
-    if [ $TPM_ABSENT -eq 1 ]; then
-        [ $USE_CBMKPASSWD -eq 0 ] && return 0
-
+    local type="$1"
+    if [ "$type" = "luks-setup-deriving" ] || [ "$type" = "luks-setup-deriving-recovery" ]; then
         PASSPHRASE="$TEMP_DIR/passphrase"
+        if [ -s "$PASSPHRASE" ]; then
+            print_verbose "[!] Skip deriving the passphrase"
+            return 0
+        fi
 
         if ! cbmkpasswd -o "$PASSPHRASE"; then
             print_error "[!] Unable to derive the passphrase with cbmkpasswd"
             return 1
         fi
 
-        print_info "[!] Succeed to derive the passphrase with cbmkpasswd"
+        print_info "[!] Derived the passphrase with cbmkpasswd"
 
         return 0
+    elif [ "$type" != "luks-setup-unsealing" ]; then
+        print_info "[!] Unrecongnized token type \"$type\""
+        return 1
     fi
 
     PASSPHRASE="$TEMP_DIR/passphrase"
+    if [ -s "$PASSPHRASE" ]; then
+        print_verbose "[!] Use the cached passphrase"
+        return 0
+    fi
 
     local err=0
     if [ x"$TPM2TOOLS_TCTI_NAME" = x"abrmd" ]; then
@@ -379,11 +394,44 @@ unseal_passphrase() {
 
     [ $RESOURCEMGR_STARTED -eq 1 ] && pkill tpm2-abrmd
 
-    print_info "[!] Succeed to unseal the passphrase from TPM"
+    print_info "[!] Unsealed the passphrase from TPM"
 }
 
 is_luks_volume() {
     cryptsetup isLuks "$1" >/dev/null 2>&1
+}
+
+enroll_token() {
+    local type="$2"
+    local desc=""
+    local keyslot="0"
+
+    if [ "$type" = "luks-setup-unsealing" ]; then
+        desc="unsealed passphrase"
+    elif [ "$type" = "luks-setup-deriving" ]; then
+        desc="derived passphrase"
+    elif [ "$type" = "luks-setup-prompt" ]; then
+        desc="prompted passphrase"
+    elif [ "$type" = "luks-setup-deriving-recovery" ]; then
+        desc="derived passphrase for recovery"
+        keyslot="1"
+    elif [ "$type" = "luks-setup-prompt-recovery" ]; then
+        desc="prompted passphrase for recovery"
+        keyslot="1"
+    else
+        print_error "Unrecognized token type \"$type\""
+    fi
+
+    print_verbose "[?] Enrolling a new token for the $desc ..."
+
+    local luks_dev="$1"
+    local token="{\"type\":\"$type\",\"keyslots\":[\"$keyslot\"], \"description\": \"$desc\"}"
+    if ! echo -n "$token" | cryptsetup token import "$luks_dev"; then
+        print_error "[!] Failed to enroll a new token for the $desc"
+        return 1
+    fi
+
+    print_info "[!] Enrolled the new token for the $desc"
 }
 
 create_luks_volume() {
@@ -391,12 +439,18 @@ create_luks_volume() {
 
     print_info "[?] Creating the LUKS volume \"$luks_name\" ..."
 
-    ! unseal_passphrase && return $?
+    local type="$3"
+    ! retrieve_passphrase "$type" && return $?
 
     local luks_dev="$1"
     if ! cryptsetup --type luks --cipher aes-xts-plain64 --hash sha256 \
           --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev"; then
         print_error "[!] Unable to create the LUKS volume on $luks_dev"
+        return 1
+    fi
+
+    if ! enroll_token "$luks_dev" "$type"; then
+        print_error "[!] Unable to enroll a new token on the creation for the LUKS volume \"$luks_name\" ..."
         return 1
     fi
 
@@ -406,22 +460,23 @@ create_luks_volume() {
 map_luks_volume() {
     local luks_name="$2"
 
-    print_verbose "[?] Mapping the LUKS volume \"$luks_name\" ..."
+    print_verbose "[?] Mapping the LUKS volume \"$luks_name\" with the token \"$type\" ..."
 
     if [ -e "/dev/mapper/$luks_name" ]; then
         print_warning "[!] The LUKS volume \"$luks_name\" already mapped"
         return 1
     fi
 
-    ! unseal_passphrase && return $?
+    local type="$3"
+    ! retrieve_passphrase "$type" && return $?
 
     local luks_dev="$1"
     if ! cryptsetup luksOpen --key-file "$PASSPHRASE" "$luks_dev" "$luks_name"; then
-        print_error "[!] Unable to map the LUKS volume \"$luks_name\""
+        print_error "[!] Unable to map the LUKS volume \"$luks_name\" with the token \"$type\""
         return 1
     fi
 
-    print_info "[!] Mapped the LUKS volume \"$luks_name\""
+    print_info "[!] Mapped the LUKS volume \"$luks_name\" with the token \"$type\""
 }
 
 unmap_luks_volume() {
@@ -443,17 +498,69 @@ unmap_luks_volume() {
     print_info "[!] The LUKS volume \"$luks_name\" unmapped"
 }
 
+enroll_recovery_keyslot() {
+    print_verbose "[?] Enrolling a new keyslot ..."
+
+    local type="$2"
+    local passphrase="-"
+    if [ "$type" = "luks-setup-deriving-recovery" ]; then
+        passphrase="$TEMP_DIR/recovery_passphrase"
+
+        if ! cbmkpasswd -o "$passphrase"; then
+            print_error "[!] Unable to derive the passphrase with cbmkpasswd for keyslot enrollment"
+            return 1
+        fi
+    elif [ "$type" != "luks-setup-prompt-recovery" ]; then
+        print_error "[!] Unrecognized recovery type \"$type\""
+        return 1
+    fi
+
+    ! retrieve_passphrase "$type" && return $?
+
+    local luks_dev="$1"
+    if ! cat "$passphrase" | cryptsetup luksAddKey "$luks_dev" "$passphrase" --key-file "$PASSPHRASE"; then
+        print_error "[!] Unable to enroll new keyslot"
+        return 1
+    fi
+
+    print_info "[!] Enrolled a new keyslot for recovery"
+}
+
+enroll_recovery() {
+    print_verbose "[?] Enrolling keyslot and token for recovery ..."
+
+    local luks_dev="$1"
+    local type="$2"
+    if ! enroll_recovery_keyslot "$luks_dev" "$type"; then
+        print_error "[!] Failed to enroll a new keyslot for recovery"
+        return 1
+    fi
+
+    if ! enroll_token "$luks_dev" "$type"; then
+        print_error "[!] Unable to enroll a new token for recovery"
+        return 1
+    fi
+}
+
 check_dependencies() {
     print_verbose "[?] Checking the dependencies ..."
 
     local pkgs=($PACKAGES_DEPENDENT)
     for p in "${pkgs[@]}"; do
-        if ! rpm -q "$p" >/dev/null 2>&1; then
-            print_verbose "Installing the package \"$p\" ..."
+        local _p="$p"
+        [[ "$p" == +* ]] && _p="${p:1}"
 
-            yum install -y "$p"
+        if ! rpm -q "$_p" >/dev/null 2>&1; then
+            print_verbose "Installing the package \"$_p\" ..."
+
+            yum install -y "$_p"
             if [ $? -ne 0 ]; then
-                print_error "[!] Failed to install the package \"$p\""
+                if [ "$_p" != "$p" ]; then
+                    print_warning "Skip installing the absent package \"$_p\""
+                    continue
+                fi
+
+                print_error "[!] Failed to install the package \"$_p\""
                 exit 1
             fi
         else
@@ -514,6 +621,9 @@ main() {
             -e|--evict-all)
                 OPT_EVICT_ALL=1
                 ;;
+            -r|--recovery)
+                OPT_RECOVERY=1
+                ;;
             --old-lockout-auth)
                 shift
                 option_check "$opt" "$1"
@@ -562,23 +672,43 @@ main() {
 
         print_error "A backing device required to be specified with -d/--dev"
         exit 1
-    elif [ ! -e "$OPT_LUKS_DEV" ]; then
+    fi
+
+    if [ ! -e "$OPT_LUKS_DEV" ]; then
         print_error "Invalid bakcing device specified with -d/--dev"
         exit 1
     fi
 
     # Attempt to probe TPM 2.0 device if --no-tpm is not specified
-    if [ $OPT_NO_TPM -eq 0 ]; then
-        if detect_tpm; then
-            TPM_ABSENT=0
+    if [ $OPT_NO_TPM -eq 0 ] && detect_tpm; then
+        ! configure_tpm && exit 1
 
-            ! configure_tpm && exit 1
-        fi
+        TOKEN_TYPE="luks-setup-unsealing"
+        [ $USE_CBMKPASSWD -eq 1 ] && RECOVERY_TYPE="luks-setup-deriving-recovery" ||
+            RECOVERY_TYPE="luks-setup-prompt-recovery"
     else
-        print_info "Skip the detection of TPM 2.0 device"
+        [ $OPT_NO_TPM -eq 1 ] && print_info "Skip the detection of TPM 2.0 device"
 
-        [ $USE_CBMKPASSWD -eq 1 ] && print_info "Use the cbmkpasswd instead" ||
-            print_info "Prepare to prompt for the passphrase instead"
+        # There is no way for recovery in this mode
+        if [ $USE_CBMKPASSWD -eq 1 ]; then
+            print_info "Prepare to use the cbmkpasswd tool for deriving the passphrase"
+
+            TOKEN_TYPE="luks-setup-deriving"
+        else
+            print_info "Prepare to prompt for the passphrase"
+        fi
+    fi
+
+    if [ $OPT_RECOVERY -eq 1 ]; then
+        if [ "$RECOVERY_TYPE" = "" ]; then
+            print_error "Unable to do the recovery"
+            exit 1
+        fi
+
+        if ! cryptsetup token export --token-id 1 "$OPT_LUKS_DEV" | grep -Eq 'luks-setup-.+-recovery'; then
+            print_error "Unable to find the recovery token"
+            exit 1
+        fi
     fi
 
     TEMP_DIR="$(mktemp -d /tmp/luks-setup.XXXXXX)"
@@ -594,7 +724,13 @@ main() {
         if [ $OPT_FORCE_CREATION -eq 0 ]; then
             print_info "Skip the creation of LUKS volume unless specifying --force"
 
-            map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME"
+            [ $OPT_UNMAP_LUKS -eq 1 ] && exit 0
+
+            if [ $OPT_RECOVERY -eq 0 ]; then
+                map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$TOKEN_TYPE"
+            else
+                map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$RECOVERY_TYPE"
+            fi
             exit $?
         fi
 
@@ -608,10 +744,14 @@ main() {
         print_verbose "The backing device \"$OPT_LUKS_DEV\" is not a LUKS volume"
     fi
 
-    ! create_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" && exit 1
+    ! create_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$TOKEN_TYPE" && exit 1
+
+    if [ "$TOKEN_TYPE" = "luks-setup-unsealing" ]; then
+        ! enroll_recovery "$OPT_LUKS_DEV" "$RECOVERY_TYPE" && exit $?
+    fi
 
     if [ $OPT_UNMAP_LUKS -eq 0 ]; then
-        ! map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" && exit 1
+        ! map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$TOKEN_TYPE" && exit 1
     fi
 
     print_critical "The LUKS volume \"$OPT_LUKS_NAME\" backing on $OPT_LUKS_DEV is created"
