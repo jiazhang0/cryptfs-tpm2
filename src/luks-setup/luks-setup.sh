@@ -217,6 +217,26 @@ tpm_getcap() {
     eval "$cmd"
 }
 
+tpm_takeownership() {
+    local cmd=""
+
+    if [ "$TPM2_TOOLS_VERSION" = "3" ]; then
+        cmd="tpm2_takeownership --clear"
+        [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --oldLockPasswd=$OPT_OLD_LOCKOUT_AUTH"
+    elif [ "$TPM2_TOOLS_VERSION" = "4" ]; then
+        cmd="tpm2_changeauth -c lockout"
+        [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --object-auth=$OPT_OLD_LOCKOUT_AUTH"
+    else
+        print_error "Unrecognized tpm2-tools version $TPM2_TOOLS_VERSION"
+        exit 1
+    fi
+
+    if ! eval "$cmd"; then
+        print_error "[!] Failed to clear authorization values with the lockoutAuth specified"
+        return 1
+    fi
+}
+
 detect_tpm() {
     print_verbose "[?] Detecting TPM 2.0 device ..."
 
@@ -291,10 +311,7 @@ configure_tpm() {
     if [ $OPT_EVICT_ALL -eq 1 ]; then
         alert_prompt
 
-        local cmd="tpm2_changeauth -c lockout"
-        [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --object-auth=$OPT_OLD_LOCKOUT_AUTH"
-        eval "$cmd"
-        if [ $? -ne 0 ]; then
+        if ! tpm_takeownership; then
             print_error "[!] Failed to clear authorization values with the lockoutAuth specified"
             return 1
         fi
@@ -311,7 +328,7 @@ configure_tpm() {
             return 1
         fi
 
-        if tpm2_getcap handles-persistent | grep -q 0x817FFFFE; then
+        if tpm_getcap handles-persistent | grep -q 0x817FFFFE; then
            print_info "Evicting the passphrase in TPM ..."
 
            ! cryptfs-tpm2 -q evict passphrase && {
@@ -322,7 +339,7 @@ configure_tpm() {
            print_verbose "The passphrase in TPM evicted"
         fi
 
-        if tpm2_getcap handles-persistent | grep -q 0x817FFFFF; then
+        if tpm_getcap handles-persistent | grep -q 0x817FFFFF; then
            print_info "Evicting the primary key in TPM ..."
 
            ! cryptfs-tpm2 -q evict key && {
