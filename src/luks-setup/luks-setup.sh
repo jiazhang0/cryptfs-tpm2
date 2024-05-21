@@ -70,6 +70,7 @@ OPT_EVICT_ALL=0
 OPT_RECOVERY=0
 OPT_VERBOSE=0
 OPT_DEBUG=0
+OPT_INTERACTIVE=0
 OPT_OLD_LOCKOUT_AUTH=""
 OPT_LOUCKOUT_AUTH=""
 # Depreciated
@@ -123,6 +124,9 @@ Options:
 
  -r|--recovery
     (Optional) Use the recovery keyslot to unlock the LUKS volume.
+
+ --I|--interactive
+    (Optional) Prompt for a user confirmation to format the backing device.
 
  --old-lockout-auth <old lockoutAuth value>
     (Optional) Special the old lockoutAuth used to clear the old
@@ -459,8 +463,12 @@ create_luks_volume() {
     ! retrieve_passphrase "$type" && return $?
 
     local luks_dev="$1"
-    if ! cryptsetup --type luks --cipher aes-xts-plain64 --hash sha256 \
-          --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev"; then
+    local cmd="cryptsetup --type luks --cipher aes-xts-plain64 --hash sha256 \
+	       --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev" \
+	      "
+
+    [ $OPT_INTERACTIVE -eq 0 ] && cmd="$cmd --batch-mode"
+    if ! eval "$cmd"; then
         print_error "[!] Unable to create the LUKS volume on $luks_dev"
         return 1
     fi
@@ -651,6 +659,9 @@ main() {
             -r|--recovery)
                 OPT_RECOVERY=1
                 ;;
+	    -I|--interactive)
+		OPT_INTERACTIVE=1
+		;;
             --old-lockout-auth)
                 shift
                 option_check "$opt" "$1"
