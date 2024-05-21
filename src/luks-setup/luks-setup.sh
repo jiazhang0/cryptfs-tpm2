@@ -58,6 +58,7 @@ PROG_NAME=`basename $0`
 # If luks-setup is called to map a drive before the boot is completed,
 # manage the resource manager here as needed
 RESOURCEMGR_STARTED=0
+TPM2_TOOLS_VERSION="0"
 
 # Default option settings
 
@@ -197,6 +198,21 @@ alert_prompt() {
     fi
 }
 
+tpm_getcap() {
+    local cmd=""
+
+    if [ "$TPM2_TOOLS_VERSION" = "3" ]; then
+        cmd="tpm2_getcap --capabilitiy=$1"
+    elif [ "$TPM2_TOOLS_VERSION" = "4" ]; then
+        cmd="tpm2_getcap $1"
+    else
+	print_error "Unrecognized tpm2-tools version $TPM2_TOOLS_VERSION"
+	exit 1
+    fi
+
+    eval "$cmd"
+}
+
 detect_tpm() {
     print_verbose "[?] Detecting TPM 2.0 device ..."
 
@@ -317,7 +333,7 @@ configure_tpm() {
     local pcr_opt=""
     [ $OPT_USE_PCR -eq 1 ] && pcr_opt="-P auto"
 
-    if ! tpm2_getcap handles-persistent | grep -q 0x817FFFFF; then
+    if ! tpm_getcap handles-persistent | grep -q 0x817FFFFF; then
         print_verbose "Sealing the primary key into TPM ..."
 
         if ! cryptfs-tpm2 -q seal key $pcr_opt; then
@@ -328,7 +344,7 @@ configure_tpm() {
         print_info "Sealed the primary key into TPM"
     fi
 
-    if ! tpm2_getcap handles-persistent | grep -q 0x817FFFFE; then
+    if ! tpm_getcap handles-persistent | grep -q 0x817FFFFE; then
         print_info "Sealing the passphrase into TPM ..."
 
         if ! cryptfs-tpm2 -q seal passphrase $pcr_opt; then
@@ -567,6 +583,17 @@ check_dependencies() {
             print_verbose "The package \"$p\" already installed"
         fi
     done
+
+    TPM2_TOOLS_VERSION=$(rpm -q --version tpm2-tools | awk '{split($3, array, "."); print array[1]}')
+    if [ $? -ne 0 ]; then
+        print_error "[!] Failed to get the major version of tpm2-tools"
+	exit 1
+    fi
+
+    if [ "$TPM2_TOOLS_VERSION" != "3" ] && [ "$TPM2_TOOLS_VERSION" != "4" ]; then
+        print_error "[!] Unsupported tpm2-tools version \"$TPM2_TOOLS_VERSION\""
+	exit 1
+    fi
 
     if which cbmkpasswd >/dev/null 2>&1; then
         USE_CBMKPASSWD=1
