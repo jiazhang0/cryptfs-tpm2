@@ -475,6 +475,7 @@ create_luks_volume() {
 
 map_luks_volume() {
     local luks_name="$2"
+    local type="$3"
 
     print_verbose "[?] Mapping the LUKS volume \"$luks_name\" with the token \"$type\" ..."
 
@@ -483,7 +484,6 @@ map_luks_volume() {
         return 1
     fi
 
-    local type="$3"
     ! retrieve_passphrase "$type" && return $?
 
     local luks_dev="$1"
