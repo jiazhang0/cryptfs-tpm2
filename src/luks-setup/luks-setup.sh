@@ -42,7 +42,7 @@ VERSION="0.1.0"
 
 # Define the denpendent packages used by this tool
 # The "+" prefix means optional package
-PACKAGES_DEPENDENT="cryptsetup tpm2-tools procps-ng coreutils grep +cloudbox"
+PACKAGES_DEPENDENT="cryptsetup tpm2-tools procps-ng coreutils awk grep +cloudbox"
 
 DEFAULT_LUKS_VOLUME_NAME="${DEFAULT_LUKS_VOLUME_NAME:-luks_volume}"
 # Prompt the user-supplied passphrase by default
