@@ -779,12 +779,16 @@ main() {
         if [ $OPT_FORCE_CREATION -eq 0 ]; then
             print_info "Skip the creation of LUKS volume unless specifying --force"
 
-            [ $OPT_UNMAP_LUKS -eq 1 ] && exit 0
-
             if [ $OPT_RECOVERY -eq 0 ]; then
                 map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$TOKEN_TYPE"
             else
                 map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$RECOVERY_TYPE"
+            fi
+
+	    [ $? -ne 0 ] && exit 1
+
+	    if [ $OPT_UNMAP_LUKS -eq 1 ]; then
+                unmap_luks_volume "$OPT_LUKS_NAME"
             fi
             exit $?
         fi
