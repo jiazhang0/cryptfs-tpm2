@@ -30,6 +30,13 @@ run() {
     echo -e "\033[1;31m[!] ============\033[0m"
 }
 
+# Intend to see a failure
+run "luks-setup --dev $LUKS_DEVICE --no-tpm --recovery --verbose"
+
+run "luks-setup --dev $LUKS_DEVICE --force --unmap --no-tpm --verbose"
+run "cryptsetup luksDump $LUKS_DEVICE"
+run "lsblk"
+
 if [ -e "/dev/tpm0" ]; then
     run "luks-setup --dev $LUKS_DEVICE --force --verbose"
     run "cryptsetup luksDump $LUKS_DEVICE"
@@ -39,10 +46,11 @@ if [ -e "/dev/tpm0" ]; then
     run "lsblk"
 
     run "luks-setup --dev $LUKS_DEVICE --recovery --verbose"
+
+    run "luks-setup --dev $LUKS_DEVICE --force --unmap --evict-all --verbose"
+    run "cryptsetup luksDump $LUKS_DEVICE"
+    run "lsblk"
+
+    run "luks-setup --dev $LUKS_DEVICE --recovery --verbose --unmap"
+    run "lsblk"
 fi
-
-run "luks-setup --dev $LUKS_DEVICE --force --unmap --no-tpm --verbose"
-run "cryptsetup luksDump $LUKS_DEVICE"
-run "lsblk"
-
-run "luks-setup --dev $LUKS_DEVICE --no-tpm --recovery --verbose"
