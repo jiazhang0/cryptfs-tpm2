@@ -329,7 +329,7 @@ configure_tpm() {
             return 1
         fi
 
-        if tpm_getcap handles-persistent | grep -q 0x817FFFFE; then
+        if tpm_getcap handles-persistent | grep -qi 0x817FFFFE; then
            print_info "Evicting the passphrase in TPM ..."
 
            ! cryptfs-tpm2 -q evict passphrase && {
@@ -340,7 +340,7 @@ configure_tpm() {
            print_verbose "The passphrase in TPM evicted"
         fi
 
-        if tpm_getcap handles-persistent | grep -q 0x817FFFFF; then
+        if tpm_getcap handles-persistent | grep -qi 0x817FFFFF; then
            print_info "Evicting the primary key in TPM ..."
 
            ! cryptfs-tpm2 -q evict key && {
@@ -355,7 +355,7 @@ configure_tpm() {
     local pcr_opt=""
     [ $OPT_USE_PCR -eq 1 ] && pcr_opt="-P auto"
 
-    if ! tpm_getcap handles-persistent | grep -q 0x817FFFFF; then
+    if ! tpm_getcap handles-persistent | grep -qi 0x817FFFFF; then
         print_verbose "Sealing the primary key into TPM ..."
 
         if ! cryptfs-tpm2 -q seal key $pcr_opt; then
@@ -366,7 +366,7 @@ configure_tpm() {
         print_info "Sealed the primary key into TPM"
     fi
 
-    if ! tpm_getcap handles-persistent | grep -q 0x817FFFFE; then
+    if ! tpm_getcap handles-persistent | grep -qi 0x817FFFFE; then
         print_info "Sealing the passphrase into TPM ..."
 
         if ! cryptfs-tpm2 -q seal passphrase $pcr_opt; then
