@@ -59,6 +59,7 @@ PROG_NAME=`basename $0`
 # manage the resource manager here as needed
 RESOURCEMGR_STARTED=0
 TPM2_TOOLS_VERSION="0"
+NO_TOKEN_IMPORT=0
 
 # Default option settings
 
@@ -439,6 +440,8 @@ is_luks_volume() {
 }
 
 enroll_token() {
+    [ $NO_TOKEN_IMPORT -eq 1 ] && return 0
+
     local type="$2"
     local desc=""
     local keyslot="0"
@@ -620,6 +623,22 @@ check_dependencies() {
 	exit 1
     fi
 
+    local ver="$(cryptsetup --version)"
+    local maj=$(echo $ver | awk '{split($2, array, "."); print array[1]}')
+    local min=$(echo $ver | awk '{split($2, array, "."); print array[2]}')
+    local rev=$(echo $ver | awk '{split($2, array, "."); print array[3]}')
+
+    maj=$((10#$maj))
+    min=$((10#$min))
+    rev=$((10#$rev))
+
+    if [ $maj -ne 2 ]; then
+        print_error "[!] Unsupport cryptsetup version $ver"
+        exit 1
+    elif [ $min -eq 0 ] && [ $rev -lt 4 ]; then
+        NO_TOKEN_IMPORT=1
+    fi
+
     if which cbmkpasswd >/dev/null 2>&1; then
         USE_CBMKPASSWD=1
         print_verbose "Found the cbmkpasswd tool"
@@ -760,7 +779,7 @@ main() {
             exit 1
         fi
 
-        if ! cryptsetup token export --token-id 1 "$OPT_LUKS_DEV" | grep -Eq 'luks-setup-.+-recovery'; then
+        if [ $NO_TOKEN_IMPORT -eq 0 ] && ! cryptsetup token export --token-id 1 "$OPT_LUKS_DEV" | grep -Eq 'luks-setup-.+-recovery'; then
             print_error "Unable to find the recovery token"
             exit 1
         fi
