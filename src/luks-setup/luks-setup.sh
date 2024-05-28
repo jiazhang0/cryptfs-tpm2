@@ -206,7 +206,7 @@ tpm_getcap() {
     local cmd=""
 
     if [ "$TPM2_TOOLS_VERSION" = "3" ]; then
-        cmd="tpm2_getcap --capabilitiy=$1"
+        cmd="tpm2_getcap --capability=$1"
     elif [ "$TPM2_TOOLS_VERSION" = "4" ]; then
         cmd="tpm2_getcap $1"
     else
