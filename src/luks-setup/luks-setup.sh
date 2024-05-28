@@ -609,7 +609,7 @@ check_dependencies() {
         fi
     done
 
-    TPM2_TOOLS_VERSION=$(rpm -q --version tpm2-tools | awk '{split($3, array, "."); print array[1]}')
+    TPM2_TOOLS_VERSION=$(rpm -q --queryformat "%{VERSION}\n" tpm2-tools | awk -F '.' '{print $1}')
     if [ $? -ne 0 ]; then
         print_error "[!] Failed to get the major version of tpm2-tools"
 	exit 1
