@@ -39,82 +39,82 @@ PCRS=()
 
 function check_ownership()
 {
-	tpm2_changeauth --object-context=owner
-	[ $? != 0 ] && echo "TPM is not clear" && exit 1
+    tpm2_changeauth --object-context=owner
+    [ $? != 0 ] && echo "TPM is not clear" && exit 1
 }
 
 function detect_pcrs()
 {
-	local res="`tpm2_getcap pcrs`"
-	local pcrs=': \[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 \]'
+    local res="`tpm2_getcap pcrs`"
+    local pcrs=': \[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 \]'
 
-	if echo "$res" | grep -q "sha1$pcrs"; then
-		PCRS+=("sha1")
-		echo "TPM supports SHA1"
-	fi
+    if echo "$res" | grep -q "sha1$pcrs"; then
+        PCRS+=("sha1")
+        echo "TPM supports SHA1"
+    fi
 
-	if echo "$res" | grep -q "sha256$pcrs"; then
-		PCRS+=("sha256")
-		echo "TPM supports SHA256"
-	fi
+    if echo "$res" | grep -q "sha256$pcrs"; then
+        PCRS+=("sha256")
+        echo "TPM supports SHA256"
+    fi
 }
 
 function seal_all()
 {
-	echo "Sealing all ..."
+    echo "Sealing all ..."
 
-	local opts="$EXTRA_SEAL_OPTS"
+    local opts="$EXTRA_SEAL_OPTS"
 
-	if [ -n "$1" ]; then
-		case $1 in
-		sha1|sha256|auto)
-        		;;
-		*)
-			echo "Unsupported PCR bak option for seal sub-command"
-			exit 1
-			;;
-		esac
+    if [ -n "$1" ]; then
+        case $1 in
+        sha1|sha256|auto)
+            ;;
+        *)
+            echo "Unsupported PCR bak option for seal sub-command"
+            exit 1
+            ;;
+        esac
 
-		opts="$opts -P $1"
-	fi
+        opts="$opts -P $1"
+    fi
 
-	cryptfs-tpm2 -q seal all $opts
+    cryptfs-tpm2 -q seal all $opts
 }
 
 function unseal_passphrase()
 {
-	echo "Unsealing passphrase ..."
+    echo "Unsealing passphrase ..."
 
-	local opts=""
+    local opts=""
 
-	if [ -n "$1" ]; then
-		case $1 in
-		sha1|sha256|auto)
-        		;;
-		*)
-			echo "Unsupported PCR bank option for unseal sub-command"
-			exit 1
-			;;
-		esac
+    if [ -n "$1" ]; then
+        case $1 in
+        sha1|sha256|auto)
+            ;;
+        *)
+            echo "Unsupported PCR bank option for unseal sub-command"
+            exit 1
+            ;;
+        esac
 
-		opts=" -P $1"
-	fi
+        opts=" -P $1"
+    fi
 
-	cryptfs-tpm2 -q unseal passphrase $opts
+    cryptfs-tpm2 -q unseal passphrase $opts
 }
 
 function evict_all()
 {
-	echo "Evicting all ..."
+    echo "Evicting all ..."
 
-	cryptfs-tpm2 -q evict all
+    cryptfs-tpm2 -q evict all
 }
 
 function test_all()
 {
-	seal_all $1 || return 1
-	unseal_passphrase $1 || return 1
-	evict_all || return 1
+    seal_all $1 || return 1
+    unseal_passphrase $1 || return 1
+    evict_all || return 1
 }
 
 check_ownership
