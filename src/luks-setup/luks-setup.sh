@@ -211,8 +211,8 @@ tpm_getcap() {
     elif [ "$TPM2_TOOLS_VERSION" = "4" ]; then
         cmd="tpm2_getcap $1"
     else
-	print_error "Unrecognized tpm2-tools version $TPM2_TOOLS_VERSION"
-	exit 1
+        print_error "Unrecognized tpm2-tools version $TPM2_TOOLS_VERSION"
+        exit 1
     fi
 
     eval "$cmd"
@@ -484,8 +484,8 @@ create_luks_volume() {
 
     local luks_dev="$1"
     local cmd="cryptsetup --type luks --cipher aes-xts-plain64 --hash sha256 \
-	       --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev" \
-	      "
+        --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev" \
+        "
 
     [ $OPT_INTERACTIVE -eq 0 ] && cmd="$cmd --batch-mode"
     if ! eval "$cmd"; then
@@ -615,12 +615,12 @@ check_dependencies() {
     TPM2_TOOLS_VERSION=$(rpm -q --queryformat "%{VERSION}\n" tpm2-tools | awk -F '.' '{print $1}')
     if [ $? -ne 0 ]; then
         print_error "[!] Failed to get the major version of tpm2-tools"
-	exit 1
+        exit 1
     fi
 
     if [ "$TPM2_TOOLS_VERSION" != "3" ] && [ "$TPM2_TOOLS_VERSION" != "4" ]; then
         print_error "[!] Unsupported tpm2-tools version \"$TPM2_TOOLS_VERSION\""
-	exit 1
+        exit 1
     fi
 
     local ver="$(cryptsetup --version)"
@@ -695,9 +695,9 @@ main() {
             -r|--recovery)
                 OPT_RECOVERY=1
                 ;;
-	    -I|--interactive)
-		OPT_INTERACTIVE=1
-		;;
+            -I|--interactive)
+                OPT_INTERACTIVE=1
+                ;;
             --old-lockout-auth)
                 shift
                 option_check "$opt" "$1"
@@ -804,9 +804,9 @@ main() {
                 map_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$RECOVERY_TYPE"
             fi
 
-	    [ $? -ne 0 ] && exit 1
+            [ $? -ne 0 ] && exit 1
 
-	    if [ $OPT_UNMAP_LUKS -eq 1 ]; then
+            if [ $OPT_UNMAP_LUKS -eq 1 ]; then
                 unmap_luks_volume "$OPT_LUKS_NAME"
             fi
             exit $?
