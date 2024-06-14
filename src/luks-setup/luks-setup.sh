@@ -299,7 +299,7 @@ detect_tpm() {
         fi
 
         TPM2TOOLS_TCTI_NAME=abrmd
-        TPM2TOOLS_TCTI=abrmd
+        TPM2TOOLS_TCTI=tabrmd
         TPM2TOOLS_DEVICE_FILE=/dev/tpm0
         TSS2_TCTI=tabrmd
     else
