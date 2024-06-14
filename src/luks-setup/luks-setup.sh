@@ -3,7 +3,7 @@
 # The wrapper script for the creation of LUKS volume
 #
 # Copyright (c) 2024, Alibaba Cloud
-# Copyright (c) 2016-2013, Wind River Systems, Inc.
+# Copyright (c) 2016-2023, Wind River Systems, Inc.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
