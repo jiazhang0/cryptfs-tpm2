@@ -42,7 +42,7 @@ VERSION="0.1.0"
 
 # Define the denpendent packages used by this tool
 # The "+" prefix means optional package
-PACKAGES_DEPENDENT="cryptsetup tpm2-tools procps-ng coreutils gawk grep +cloudbox"
+PACKAGES_DEPENDENT="cryptsetup tpm2-tools tpm2-abrmd procps-ng coreutils gawk grep +cloudbox"
 
 DEFAULT_LUKS_VOLUME_NAME="${DEFAULT_LUKS_VOLUME_NAME:-luks_volume}"
 # Prompt the user-supplied passphrase by default
@@ -288,18 +288,24 @@ detect_tpm() {
         return 1
     fi
 
-    pgrep tpm2-abrmd >/dev/null
-    [ $? -ne 0 ] && {
+    if [ -e "/dev/tpmrm0" ]; then
         TPM2TOOLS_TCTI_NAME=device
         TPM2TOOLS_TCTI=device
         TPM2TOOLS_DEVICE_FILE=/dev/tpmrm0
         TSS2_TCTI=device
-    } || {
+    elif [ -e "/dev/tpm0" ]; then
+        if ! pgrep tpm2-abrmd >/dev/null; then
+            systemctl start tpm2-abrmd && RESOURCEMGR_STARTED=1
+        fi
+
         TPM2TOOLS_TCTI_NAME=abrmd
         TPM2TOOLS_TCTI=abrmd
         TPM2TOOLS_DEVICE_FILE=/dev/tpm0
         TSS2_TCTI=tabrmd
-    }
+    else
+        print_info "[!] Not found any TPM 2.0 device in /dev"
+        return 1
+    fi
 
     export TPM2TOOLS_TCTI_NAME TSS2_TCTI TPM2TOOLS_DEVICE_FILE TPM2TOOLS_TCTI
 
@@ -412,7 +418,6 @@ retrieve_passphrase() {
 
     local err=0
     if [ x"$TPM2TOOLS_TCTI_NAME" = x"abrmd" ]; then
-        RESOURCEMGR_STARTED=1
         tcti-probe -q wait -d 100 -t 3000 2>/dev/null
         err=$?
     fi
