@@ -100,12 +100,14 @@ TSS2_TCTI_CONTEXT *
 init_tcti_device(void)
 {
 #ifndef TSS2_LEGACY_V1
-	const char *cfg = "/dev/tpmrm0";
+	const char *cfgs[] = { "/dev/tpmrm0", "/dev/tpm0" };
 #else
-	TCTI_DEVICE_CONF cfg = {
-		.device_path = "/dev/tpm0",
-		.logCallback = NULL,
-		.logData  = NULL,
+	TCTI_DEVICE_CONF cfgs[] = {
+		{
+			.device_path = "/dev/tpm0",
+			.logCallback = NULL,
+			.logData  = NULL,
+		}
 	};
 #endif
 	size_t size;
@@ -123,17 +125,27 @@ init_tcti_device(void)
 	}
 
 	ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
-	if (ctx) {
+	if (!ctx)
+		return ctx;
+
+	#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(cfgs); ++i) {
 #ifndef TSS2_LEGACY_V1
-		rc = Tss2_Tcti_Device_Init(ctx, &size, cfg);
+		rc = Tss2_Tcti_Device_Init(ctx, &size, cfgs[i]);
 #else
-		rc = InitDeviceTcti(ctx, &size, &cfg);
+		rc = InitDeviceTcti(ctx, &size, &cfgs[i]);
 #endif
-		if (rc != TSS2_RC_SUCCESS) {
-			err("Unable to initialize device tcti context\n");
-			free(ctx);
-			ctx = NULL;
-		}
+		if (rc == TSS2_RC_SUCCESS)
+			break;
+	}
+
+	#undef ARRAY_SIZE
+
+	if (rc != TSS2_RC_SUCCESS) {
+		err("Unable to initialize device tcti context\n");
+		free(ctx);
+		ctx = NULL;
 	}
 
 	return ctx;
