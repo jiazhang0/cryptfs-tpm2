@@ -405,6 +405,9 @@ retrieve_passphrase() {
         print_info "[!] Derived the passphrase with cbmkpasswd"
 
         return 0
+    elif [ "$type" = "luks-setup-prompt-recovery" ]; then
+        print_info "[!] Skip to automatically retrieve the recovery passphrase"
+        return 0
     elif [ "$type" != "luks-setup-unsealing" ]; then
         print_info "[!] Unrecongnized token type \"$type\""
         return 1
@@ -567,7 +570,7 @@ enroll_recovery_keyslot() {
     ! retrieve_passphrase "$type" && return $?
 
     local luks_dev="$1"
-    if ! cat "$passphrase" | cryptsetup luksAddKey "$luks_dev" "$passphrase" --key-file "$PASSPHRASE"; then
+    if ! cryptsetup luksAddKey "$luks_dev" "$passphrase" --key-file "$PASSPHRASE"; then
         print_error "[!] Unable to enroll new keyslot"
         return 1
     fi
