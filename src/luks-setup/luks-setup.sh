@@ -491,6 +491,7 @@ create_luks_volume() {
     ! retrieve_passphrase "$type" && return $?
 
     local luks_dev="$1"
+    # --type luks means using the default LUKS version choosen by cryptsetup
     local cmd="cryptsetup --type luks --cipher aes-xts-plain64 --hash sha256 \
         --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev" \
         "
@@ -501,10 +502,13 @@ create_luks_volume() {
         return 1
     fi
 
-    if ! enroll_token "$luks_dev" "$type"; then
-        print_error "[!] Unable to enroll a new token on the creation for the LUKS volume \"$luks_name\" ..."
-        return 1
-    fi
+    # LUKS version 1 doesn't support token
+    cryptsetup isLuks --type luks1 "$luks_dev" && NO_TOKEN_IMPORT=1 || {
+        if ! enroll_token "$luks_dev" "$type"; then
+            print_error "[!] Unable to enroll a new token on the creation for the LUKS volume \"$luks_name\" ..."
+            return 1
+        fi
+    }
 
     print_info "[!] Created the LUKS volume \"$luks_name\" on the backing device \"$luks_dev\""
 }
