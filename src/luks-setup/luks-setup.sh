@@ -95,7 +95,7 @@ Options:
      e.g, /dev/sda1
 
  -N|--no-setup
-     In this mode you can map/unmap existing LUKS volume.
+    (Optional) Depreciated. In this mode you can map/unmap existing LUKS volume.
 
  -n|--name <mapped name>
     (Optional) Set the mapped name for the dmcrypt target device.
@@ -107,7 +107,7 @@ Options:
     (Optional) Enforce formating the LUKS volume if already existed.
 
  -m|--map-existing
-    (Optional) Map previously created LUKS volume.
+    (Optional) Depreciated. Map previously created LUKS volume.
 
  -u|--unmap
     (Optional) Unmap the created LUKS volume before exiting.
@@ -750,6 +750,7 @@ main() {
         [ $OPT_UNMAP_LUKS -eq 1 ] && exit 0
 
         print_error "A backing device required to be specified with -d/--dev"
+        show_help "$PROG_NAME"
         exit 1
     fi
 
