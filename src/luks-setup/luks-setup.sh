@@ -409,7 +409,7 @@ retrieve_passphrase() {
         print_info "[!] Skip to automatically retrieve the recovery passphrase"
         return 0
     elif [ "$type" != "luks-setup-unsealing" ]; then
-        print_info "[!] Unrecongnized token type \"$type\""
+        print_info "[!] Unrecognized token type \"$type\""
         return 1
     fi
 
