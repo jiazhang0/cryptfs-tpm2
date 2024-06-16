@@ -208,7 +208,7 @@ tpm_getcap() {
 
     if [ "$TPM2_TOOLS_VERSION" = "3" ]; then
         cmd="tpm2_getcap --capability=$1"
-    elif [ "$TPM2_TOOLS_VERSION" = "4" ]; then
+    elif [ "$TPM2_TOOLS_VERSION" = "4" -o "$TPM2_TOOLS_VERSION" = "5" ]; then
         cmd="tpm2_getcap $1"
     else
         print_error "Unrecognized tpm2-tools version $TPM2_TOOLS_VERSION"
@@ -224,7 +224,7 @@ tpm_takeownership() {
     if [ "$TPM2_TOOLS_VERSION" = "3" ]; then
         cmd="tpm2_takeownership --clear"
         [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --oldLockPasswd=$OPT_OLD_LOCKOUT_AUTH"
-    elif [ "$TPM2_TOOLS_VERSION" = "4" ]; then
+    elif [ "$TPM2_TOOLS_VERSION" = "4" -o "$TPM2_TOOLS_VERSION" = "5" ]; then
         cmd="tpm2_changeauth -c lockout"
         [ -n "$OPT_OLD_LOCKOUT_AUTH" ] && cmd="${cmd} --object-auth=$OPT_OLD_LOCKOUT_AUTH"
     else
@@ -630,7 +630,7 @@ check_dependencies() {
         exit 1
     fi
 
-    if [ "$TPM2_TOOLS_VERSION" != "3" ] && [ "$TPM2_TOOLS_VERSION" != "4" ]; then
+    if [ "$TPM2_TOOLS_VERSION" != "3" ] && [ "$TPM2_TOOLS_VERSION" != "4" ] && [ "$TPM2_TOOLS_VERSION" != "5" ]; then
         print_error "[!] Unsupported tpm2-tools version \"$TPM2_TOOLS_VERSION\""
         exit 1
     fi
