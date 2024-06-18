@@ -69,6 +69,7 @@ OPT_NO_TPM=0
 OPT_USE_PCR=0
 OPT_EVICT_ALL=0
 OPT_RECOVERY=0
+OPT_NO_DEPS=0
 OPT_VERBOSE=0
 OPT_DEBUG=0
 OPT_INTERACTIVE=0
@@ -125,6 +126,9 @@ Options:
 
  -r|--recovery
     (Optional) Use the recovery keyslot to unlock the LUKS volume.
+
+ -N|--nodeps
+    (Optional) Don't exit due to the unmet dependency.
 
  --I|--interactive
     (Optional) Prompt for a user confirmation to format the backing device.
@@ -616,6 +620,11 @@ check_dependencies() {
                     continue
                 fi
 
+		if [ $OPT_NO_DEPS -eq 1 ]; then
+                    print_warning "Skip installing the unmet package \"$_p\""
+                    continue
+		fi
+
                 print_error "[!] Failed to install the package \"$_p\""
                 exit 1
             fi
@@ -706,6 +715,9 @@ main() {
                 ;;
             -r|--recovery)
                 OPT_RECOVERY=1
+                ;;
+	    -N|--nodeps)
+                OPT_NO_DEPS=1
                 ;;
             -I|--interactive)
                 OPT_INTERACTIVE=1
