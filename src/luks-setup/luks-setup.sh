@@ -636,10 +636,10 @@ check_dependencies() {
                     continue
                 fi
 
-		if [ $OPT_NO_DEPS -eq 1 ]; then
+                if [ $OPT_NO_DEPS -eq 1 ]; then
                     print_warning "Skip installing the unmet package \"$_p\""
                     continue
-		fi
+                fi
 
                 print_error "[!] Failed to install the package \"$_p\""
                 exit 1
@@ -732,7 +732,7 @@ main() {
             -r|--recovery)
                 OPT_RECOVERY=1
                 ;;
-	    -N|--nodeps)
+            -N|--nodeps)
                 OPT_NO_DEPS=1
                 ;;
             -I|--interactive)
