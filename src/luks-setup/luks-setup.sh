@@ -409,6 +409,9 @@ retrieve_passphrase() {
         print_info "[!] Derived the passphrase with cbmkpasswd"
 
         return 0
+    elif [ "$type" = "luks-setup-prompt" ]; then
+        print_info "[!] Skip retrieving the passphrase"
+        return 0
     elif [ "$type" = "luks-setup-prompt-recovery" ]; then
         print_info "[!] Skip to automatically retrieve the recovery passphrase"
         return 0
@@ -497,8 +500,14 @@ create_luks_volume() {
     local luks_dev="$1"
     # --type luks means using the default LUKS version choosen by cryptsetup
     local cmd="cryptsetup --type luks --cipher aes-xts-plain64 --hash sha256 \
-        --use-random --key-file "$PASSPHRASE" luksFormat "$luks_dev" \
+        --use-random luksFormat "$luks_dev" \
         "
+
+    if [ "$type" = "luks-setup-prompt" ]; then
+        cmd="$cmd --verify-passphrase"
+    else
+        cmd="$cmd --key-file $PASSPHRASE"
+    fi
 
     [ $OPT_INTERACTIVE -eq 0 ] && cmd="$cmd --batch-mode"
     if ! eval "$cmd"; then
@@ -531,7 +540,14 @@ map_luks_volume() {
     ! retrieve_passphrase "$type" && return $?
 
     local luks_dev="$1"
-    if ! cryptsetup luksOpen --key-file "$PASSPHRASE" "$luks_dev" "$luks_name"; then
+
+    local cmd="cryptsetup luksOpen $luks_dev $luks_name"
+
+    if [ "$type" != "luks-setup-prompt" ]; then
+        cmd="$cmd --key-file $PASSPHRASE"
+    fi
+
+    if ! eval "$cmd"; then
         print_error "[!] Unable to map the LUKS volume \"$luks_name\" with the token \"$type\""
         return 1
     fi
