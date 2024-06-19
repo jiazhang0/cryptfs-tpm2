@@ -127,10 +127,10 @@ Options:
  -r|--recovery
     (Optional) Use the recovery keyslot to unlock the LUKS volume.
 
- -N|--nodeps
+ -E|--nodeps
     (Optional) Don't exit due to the unmet dependency.
 
- --I|--interactive
+ -I|--interactive
     (Optional) Prompt for a user confirmation to format the backing device.
 
  --old-lockout-auth <old lockoutAuth value>
@@ -732,7 +732,7 @@ main() {
             -r|--recovery)
                 OPT_RECOVERY=1
                 ;;
-            -N|--nodeps)
+            -E|--nodeps)
                 OPT_NO_DEPS=1
                 ;;
             -I|--interactive)

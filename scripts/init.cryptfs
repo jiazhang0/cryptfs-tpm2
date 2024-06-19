@@ -2,7 +2,7 @@
 
 # Initramfs script called by /init
 #
-# This script is a halper used to decrypt and mount the rootfs
+# This script is a helper used to decrypt and mount the rootfs
 # encrypted with cryptfs-tpm2.
 #
 # BSD 2-clause "Simplified" License
