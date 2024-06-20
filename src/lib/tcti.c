@@ -110,7 +110,7 @@ init_tcti_device(void)
 		}
 	};
 #endif
-	size_t size;
+	size_t size, real_size;
 	TSS2_TCTI_CONTEXT *ctx;
 	TSS2_RC rc;
 
@@ -128,6 +128,8 @@ init_tcti_device(void)
 	if (!ctx)
 		return ctx;
 
+	real_size = size;
+
 	#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 	for (unsigned int i = 0; i < ARRAY_SIZE(cfgs); ++i) {
@@ -138,6 +140,12 @@ init_tcti_device(void)
 #endif
 		if (rc == TSS2_RC_SUCCESS)
 			break;
+
+		free(ctx);
+		size = real_size;
+		ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
+		if (!ctx)
+			return ctx;
 	}
 
 	#undef ARRAY_SIZE
