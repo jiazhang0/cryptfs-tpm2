@@ -80,6 +80,8 @@ init_tcti_tabrmd(void)
 
 	ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
 	if (ctx) {
+		memset(ctx, 0, size);
+
 #ifndef TSS2_LEGACY_V1
 		rc = init(ctx, &size, NULL);
 #else
@@ -127,6 +129,8 @@ init_tcti_device(void)
 	ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
 	if (!ctx)
 		return ctx;
+
+	memset(ctx, 0, size);
 
 	#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -181,6 +185,8 @@ init_tcti_socket(void)
 
 	ctx = (TSS2_TCTI_CONTEXT *)malloc(size);
 	if (ctx) {
+		memset(ctx, 0, size);
+
 #ifndef TSS2_LEGACY_V1
 		rc = Tss2_Tcti_Mssim_Init(ctx, &size, cfg);
 #else
