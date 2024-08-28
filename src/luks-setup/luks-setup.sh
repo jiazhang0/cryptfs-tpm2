@@ -75,6 +75,7 @@ OPT_DEBUG=0
 OPT_INTERACTIVE=0
 OPT_OLD_LOCKOUT_AUTH=""
 OPT_LOUCKOUT_AUTH=""
+OPT_NO_RECOVERY=0
 # Depreciated
 OPT_MAP_EXISTING_LUKS=0
 # Depreciated
@@ -126,6 +127,9 @@ Options:
 
  -r|--recovery
     (Optional) Use the recovery keyslot to unlock the LUKS volume.
+
+ -R|--skip-recovery
+    (Optional) Skip enrolling recovery keyslot.
 
  -E|--nodeps
     (Optional) Don't exit due to the unmet dependency.
@@ -732,6 +736,9 @@ main() {
             -r|--recovery)
                 OPT_RECOVERY=1
                 ;;
+            -R|--skip-recovery)
+                OPT_NO_RECOVERY=1
+                ;;
             -E|--nodeps)
                 OPT_NO_DEPS=1
                 ;;
@@ -865,7 +872,7 @@ main() {
 
     ! create_luks_volume "$OPT_LUKS_DEV" "$OPT_LUKS_NAME" "$TOKEN_TYPE" && exit 1
 
-    if [ "$TOKEN_TYPE" = "luks-setup-unsealing" ]; then
+    if [ $OPT_NO_RECOVERY -eq 0 ] && [ "$TOKEN_TYPE" = "luks-setup-unsealing" ]; then
         ! enroll_recovery "$OPT_LUKS_DEV" "$RECOVERY_TYPE" && exit $?
     fi
 
